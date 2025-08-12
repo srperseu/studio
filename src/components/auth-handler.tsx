@@ -8,7 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import { Icons } from '@/components/icons';
 
 const protectedRoutes = ['/dashboard', '/profile-setup'];
-const authRoutes = ['/login', 'signup'];
+const authRoutes = ['/login', '/signup'];
 
 export function AuthHandler({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
           <Icons.Spinner className="h-8 w-8" />
           <h1 className="text-2xl font-headline">Carregando a Barbearia Digital...</h1>

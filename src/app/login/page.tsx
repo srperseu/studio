@@ -50,8 +50,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col justify-center items-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold font-headline">Login do Barbeiro</CardTitle>
           <CardDescription>Acesse seu painel de controle</CardDescription>
@@ -66,9 +66,9 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>E-mail</FormLabel>
                     <div className="relative">
-                      <Icons.Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Icons.Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <FormControl>
-                        <Input type="email" placeholder="seu@email.com" className="pl-10 bg-gray-700 border-gray-600" {...field} />
+                        <Input type="email" placeholder="seu@email.com" className="pl-10" {...field} />
                       </FormControl>
                     </div>
                     <FormMessage />
@@ -82,9 +82,9 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Senha</FormLabel>
                     <div className="relative">
-                      <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" className="pl-10 bg-gray-700 border-gray-600" {...field} />
+                        <Input type="password" placeholder="••••••••" className="pl-10" {...field} />
                       </FormControl>
                     </div>
                     <FormMessage />
@@ -105,7 +105,7 @@ export default function LoginPage() {
               </Link>
             </p>
             <p>
-              <Link href="/" className="text-sm text-gray-400 hover:text-white">
+              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
                 Ver como cliente
               </Link>
             </p>

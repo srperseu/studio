@@ -61,15 +61,15 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     <>
       <div className="flex justify-end mb-4">
         <Link href="/login">
-            <Button variant="outline" className="text-gray-600 border-gray-300 hover:bg-gray-200">
+            <Button variant="outline">
                 Área do Barbeiro &rarr;
             </Button>
         </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        <Card>
+        <Card className="bg-card">
           <CardHeader>
-            <label htmlFor="barber-select" className="block text-sm font-medium text-gray-700 mb-2">Escolha o Barbeiro</label>
+            <label htmlFor="barber-select" className="block text-sm font-medium text-muted-foreground mb-2">Escolha o Barbeiro</label>
             <Select onValueChange={setSelectedBarberId} defaultValue={selectedBarberId}>
                 <SelectTrigger id="barber-select">
                     <SelectValue placeholder="Selecione um barbeiro" />
@@ -84,21 +84,21 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <div className="flex items-center gap-4 mb-4">
                 <Image src={selectedBarber.photoURL || 'https://placehold.co/80x80.png'} alt={selectedBarber.fullName} width={80} height={80} className="rounded-full object-cover" data-ai-hint="barber portrait" />
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800">{selectedBarber.fullName}</h2>
-                  <p className="text-gray-600 flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address}</p>
+                  <h2 className="text-2xl font-bold">{selectedBarber.fullName}</h2>
+                  <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address}</p>
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">{selectedBarber.description}</p>
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-gray-700 mb-2">Serviços Disponíveis</h3>
-                {selectedBarber.services.inShop.active && <p className="text-gray-600">Corte na Barbearia - R$ {selectedBarber.services.inShop.price}</p>}
-                {selectedBarber.services.atHome.active && <p className="text-gray-600">Corte em Domicílio - R$ {selectedBarber.services.atHome.price}</p>}
+              <p className="text-muted-foreground mb-4">{selectedBarber.description}</p>
+              <div className="border-t border-border pt-4">
+                <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
+                {selectedBarber.services.inShop.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {selectedBarber.services.inShop.price}</p>}
+                {selectedBarber.services.atHome.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {selectedBarber.services.atHome.price}</p>}
               </div>
             </CardContent>
           )}
         </Card>
         {selectedBarber && (
-          <Card>
+          <Card className="bg-card">
             <CardHeader>
               <CardTitle>Faça seu agendamento</CardTitle>
               <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
@@ -106,18 +106,18 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">Seu Nome</label>
-                  <Input id="clientName" {...register('clientName')} />
-                  {errors.clientName && <p className="text-red-500 text-xs mt-1">{errors.clientName.message}</p>}
+                  <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
+                  <Input id="clientName" {...register('clientName')} className="mt-1" />
+                  {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName.message}</p>}
                 </div>
                 <div>
-                    <label htmlFor="service" className="block text-sm font-medium text-gray-700">Serviço</label>
+                    <label htmlFor="service" className="block text-sm font-medium text-muted-foreground">Serviço</label>
                     <Controller
                         control={control}
                         name="selectedService"
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger id="service">
+                                <SelectTrigger id="service" className="mt-1">
                                     <SelectValue placeholder="Selecione um serviço" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -128,21 +128,21 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                             </Select>
                         )}
                     />
-                    {errors.selectedService && <p className="text-red-500 text-xs mt-1">{errors.selectedService.message}</p>}
+                    {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700">Data</label>
-                    <Input type="date" id="date" {...register('selectedDate')} />
-                    {errors.selectedDate && <p className="text-red-500 text-xs mt-1">{errors.selectedDate.message}</p>}
+                    <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
+                    <Input type="date" id="date" {...register('selectedDate')} className="mt-1" />
+                    {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate.message}</p>}
                   </div>
                   <div>
-                    <label htmlFor="time" className="block text-sm font-medium text-gray-700">Horário</label>
-                    <Input type="time" id="time" {...register('selectedTime')} />
-                    {errors.selectedTime && <p className="text-red-500 text-xs mt-1">{errors.selectedTime.message}</p>}
+                    <label htmlFor="time" className="block text-sm font-medium text-muted-foreground">Horário</label>
+                    <Input type="time" id="time" {...register('selectedTime')} className="mt-1" />
+                    {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime.message}</p>}
                   </div>
                 </div>
-                <Button type="submit" disabled={isLoading} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold">
+                <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
                   {isLoading && <Icons.Spinner className="mr-2" />}
                   {isLoading ? 'Agendando...' : 'Agendar Horário'}
                 </Button>

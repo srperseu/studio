@@ -118,16 +118,16 @@ export default function ProfileSetupPage() {
 
   if (authLoading || isPageLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <Skeleton className="max-w-4xl mx-auto h-[80vh] bg-gray-800" />
+      <div className="min-h-screen bg-background p-8">
+        <Skeleton className="max-w-4xl mx-auto h-[80vh] bg-card" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8">
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-3xl font-bold font-headline">Configuração do Perfil</CardTitle>
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>
@@ -135,7 +135,7 @@ export default function ProfileSetupPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               
-              <Card className="p-6 bg-gray-700/50 border-gray-600">
+              <Card className="p-6 bg-muted/50 border-border">
                 <CardTitle className="text-xl font-semibold text-primary mb-4">Informações Básicas</CardTitle>
                 <div className="flex flex-col sm:flex-row items-start gap-6">
                   <div className="flex flex-col items-center flex-shrink-0">
@@ -143,7 +143,7 @@ export default function ProfileSetupPage() {
                       src={previewImage || 'https://placehold.co/128x128.png'} 
                       alt="Preview" 
                       width={128} height={128} 
-                      className="w-32 h-32 rounded-full bg-gray-600 mb-4 object-cover border-2 border-gray-500"
+                      className="w-32 h-32 rounded-full bg-muted mb-4 object-cover border-2 border-border"
                       data-ai-hint="barber portrait"
                     />
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
@@ -153,7 +153,7 @@ export default function ProfileSetupPage() {
                   </div>
                   <div className="flex-grow w-full space-y-2">
                     <Label htmlFor="description">Descrição / Biografia</Label>
-                    <Textarea id="description" name="description" rows={4} value={profile.description} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." className="bg-gray-600 border-gray-500" />
+                    <Textarea id="description" name="description" rows={4} value={profile.description} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
                     <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-accent hover:bg-accent/90">
                       {isGeneratingDesc ? <Icons.Spinner className="mr-2" /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                       {isGeneratingDesc ? 'Gerando...' : 'Gerar Bio com IA'}
@@ -162,62 +162,62 @@ export default function ProfileSetupPage() {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-gray-700/50 border-gray-600">
+              <Card className="p-6 bg-muted/50 border-border">
                 <CardTitle className="text-xl font-semibold text-primary mb-4">Localização</CardTitle>
                 <Label htmlFor="address">Endereço da Barbearia</Label>
                 <div className="relative mt-2">
-                  <Icons.MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input type="text" id="address" name="address" value={profile.address} onChange={handleChange} placeholder="Rua, Número, Bairro, Cidade - Estado" className="w-full pl-10 bg-gray-600 border-gray-500" />
+                  <Icons.MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input type="text" id="address" name="address" value={profile.address} onChange={handleChange} placeholder="Rua, Número, Bairro, Cidade - Estado" className="w-full pl-10" />
                 </div>
-                <div className="mt-4 h-48 bg-gray-600 rounded-lg flex items-center justify-center text-gray-400 border border-gray-500">
+                <div className="mt-4 h-48 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border">
                   Simulação do Mapa (API do Google Maps)
                 </div>
               </Card>
 
-              <Card className="p-6 bg-gray-700/50 border-gray-600">
+              <Card className="p-6 bg-muted/50 border-border">
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Calendar /> Horários de Atendimento</CardTitle>
                 <div className="space-y-4">
                   {Object.keys(profile.availability!).map(day => (
-                    <div key={day} className="grid grid-cols-1 sm:grid-cols-[1fr,2fr] gap-4 items-center p-3 bg-gray-600/50 rounded-md">
+                    <div key={day} className="grid grid-cols-1 sm:grid-cols-[1fr,2fr] gap-4 items-center p-3 bg-muted/50 rounded-md">
                       <div className="flex items-center">
                         <Switch id={`check-${day}`} checked={profile.availability![day].active} onCheckedChange={(checked) => handleAvailabilityChange(day, 'active', checked)} />
                         <Label htmlFor={`check-${day}`} className="ml-3 font-medium text-lg">{day}</Label>
                       </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor={`start-${day}`} className="text-sm">De</Label>
-                        <Input type="time" id={`start-${day}`} value={profile.availability![day].start} onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)} disabled={!profile.availability![day].active} className="bg-gray-700 border-gray-500 w-full disabled:opacity-50" />
+                        <Input type="time" id={`start-${day}`} value={profile.availability![day].start} onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
                         <Label htmlFor={`end-${day}`} className="text-sm">Até</Label>
-                        <Input type="time" id={`end-${day}`} value={profile.availability![day].end} onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)} disabled={!profile.availability![day].active} className="bg-gray-700 border-gray-500 w-full disabled:opacity-50" />
+                        <Input type="time" id={`end-${day}`} value={profile.availability![day].end} onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
                       </div>
                     </div>
                   ))}
                 </div>
               </Card>
               
-              <Card className="p-6 bg-gray-700/50 border-gray-600">
+              <Card className="p-6 bg-muted/50 border-border">
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Serviços e Preços</CardTitle>
                 <div className="space-y-4">
-                  <div className="p-3 bg-gray-600/50 rounded-md">
+                  <div className="p-3 bg-muted/50 rounded-md">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center">
                         <Switch id="inShop" checked={profile.services!.inShop.active} onCheckedChange={(checked) => handleServiceChange('inShop', 'active', checked)} />
                         <Label htmlFor="inShop" className="ml-3 font-medium flex items-center gap-2"><Icons.User /> Atendimento na Barbearia</Label>
                       </div>
                       <div className="relative w-36">
-                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input type="number" placeholder="Preço" value={profile.services!.inShop.price} onChange={(e) => handleServiceChange('inShop', 'price', e.target.value)} disabled={!profile.services!.inShop.active} className="w-full pl-10 bg-gray-700 border-gray-500 disabled:opacity-50" />
+                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" placeholder="Preço" value={profile.services!.inShop.price} onChange={(e) => handleServiceChange('inShop', 'price', e.target.value)} disabled={!profile.services!.inShop.active} className="w-full pl-10 disabled:opacity-50" />
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 bg-gray-600/50 rounded-md">
+                  <div className="p-3 bg-muted/50 rounded-md">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center">
                         <Switch id="atHome" checked={profile.services!.atHome.active} onCheckedChange={(checked) => handleServiceChange('atHome', 'active', checked)} />
                         <Label htmlFor="atHome" className="ml-3 font-medium flex items-center gap-2"><Icons.Home /> Atendimento em Domicílio</Label>
                       </div>
                       <div className="relative w-36">
-                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input type="number" placeholder="Preço" value={profile.services!.atHome.price} onChange={(e) => handleServiceChange('atHome', 'price', e.target.value)} disabled={!profile.services!.atHome.active} className="w-full pl-10 bg-gray-700 border-gray-500 disabled:opacity-50" />
+                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" placeholder="Preço" value={profile.services!.atHome.price} onChange={(e) => handleServiceChange('atHome', 'price', e.target.value)} disabled={!profile.services!.atHome.active} className="w-full pl-10 disabled:opacity-50" />
                       </div>
                     </div>
                   </div>
@@ -234,21 +234,4 @@ export default function ProfileSetupPage() {
       </div>
     </div>
   );
-}
-
-// Custom hook to get auth state
-function useAuth() {
-    const [authState, setAuthState] = useState<{
-        user: import('firebase/auth').User | null;
-        loading: boolean;
-    }>({ user: null, loading: true });
-
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
-            setAuthState({ user, loading: false });
-        });
-        return () => unsubscribe();
-    }, []);
-
-    return authState;
 }

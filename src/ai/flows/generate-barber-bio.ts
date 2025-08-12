@@ -30,9 +30,7 @@ const prompt = ai.definePrompt({
   name: 'generateBarberBioPrompt',
   input: {schema: GenerateBarberBioInputSchema},
   output: {schema: GenerateBarberBioOutputSchema},
-  prompt: `You are an expert in marketing for barbershops. Create a short (2-3 sentences)
-  and attractive bio for a barber specializing in "{{{keywords}}}". Use a professional,
-  modern, and inviting tone. Return only the text of the bio.`,
+  prompt: `You are an expert in marketing for barbershops. Create a short (2-3 sentences)\n  and attractive bio for a barber specializing in "{{{keywords}}}". Use a professional,\n  modern, and inviting tone. Return only the text of the bio.`, 
 });
 
 const generateBarberBioFlow = ai.defineFlow(
