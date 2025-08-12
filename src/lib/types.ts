@@ -1,0 +1,43 @@
+import type { Timestamp } from 'firebase/firestore';
+
+export interface ServiceDetail {
+  active: boolean;
+  price: string;
+}
+
+export interface Services {
+  inShop: ServiceDetail;
+  atHome: ServiceDetail;
+}
+
+export interface Availability {
+  [day: string]: {
+    active: boolean;
+    start: string;
+    end:string;
+  };
+}
+
+export interface Barber {
+  id: string;
+  uid: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  profileComplete: boolean;
+  photoURL?: string;
+  description?: string;
+  address?: string;
+  availability: Availability;
+  services: Services;
+}
+
+export interface Appointment {
+  id: string;
+  clientName: string;
+  service: string;
+  type: 'inShop' | 'atHome';
+  date: string;
+  time: string;
+  createdAt: Timestamp;
+}

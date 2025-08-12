@@ -1,0 +1,36 @@
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Upload,
+  MapPin,
+  Calendar,
+  Scissors,
+  Home,
+  Bell,
+  LogOut,
+  DollarSign,
+  Sparkles,
+  ChevronLeft,
+  Loader2,
+  type LucideProps
+} from 'lucide-react';
+
+export const Icons = {
+  User: (props: LucideProps) => <User {...props} />,
+  Mail: (props: LucideProps) => <Mail {...props} />,
+  Phone: (props: LucideProps) => <Phone {...props} />,
+  Lock: (props: LucideProps) => <Lock {...props} />,
+  Upload: (props: LucideProps) => <Upload {...props} />,
+  MapPin: (props: LucideProps) => <MapPin {...props} />,
+  Calendar: (props: LucideProps) => <Calendar {...props} />,
+  Scissors: (props: LucideProps) => <Scissors {...props} />,
+  Home: (props: LucideProps) => <Home {...props} />,
+  Bell: (props: LucideProps) => <Bell {...props} />,
+  LogOut: (props: LucideProps) => <LogOut {...props} />,
+  DollarSign: (props: LucideProps) => <DollarSign {...props} />,
+  Sparkles: (props: LucideProps) => <Sparkles {...props} />,
+  ChevronLeft: (props: LucideProps) => <ChevronLeft {...props} />,
+  Spinner: (props: LucideProps) => <Loader2 className="animate-spin" {...props} />,
+};
