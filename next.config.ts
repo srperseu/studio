@@ -18,11 +18,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  compiler: {
-    // This is needed to fix the babel error.
-    // See: https://nextjs.org/docs/architecture/next-compiler#why-am-i-seeing-it-looks-like-there-is-a-custom-babel-configuration-that-can-be-removed
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
 };
 
 export default nextConfig;
