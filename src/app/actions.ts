@@ -59,12 +59,12 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
   try {
     const { clientName, selectedService, selectedDate, selectedTime } = bookingData;
     
-    if (!selectedService || typeof selectedService !== 'string' || selectedService.trim() === '') {
+    if (!selectedService || typeof selectedService !== 'string' || !selectedService.includes('|')) {
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
 
     const serviceParts = selectedService.split('|');
-    if (serviceParts.length !== 2) {
+    if (serviceParts.length !== 2 || !serviceParts[0] || !serviceParts[1]) {
         return { success: false, message: 'Formato de serviço inválido.'};
     }
     const [serviceName, serviceType] = serviceParts;
@@ -86,3 +86,4 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
+
