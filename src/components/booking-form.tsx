@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getDay, parseISO } from 'date-fns';
+import { getDay, parseISO, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import type { Barber, Client } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +18,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
 import { useAuth } from '@/hooks/use-auth';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { cn } from '@/lib/utils';
 
 const dayOfWeekMap = [
   'Domingo',
@@ -35,7 +39,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const [clientName, setClientName] = useState('');
   const [selectedService, setSelectedService] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -65,8 +69,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
 
   useEffect(() => {
     if (selectedDate && selectedBarber?.availability) {
-      // The `parseISO` is crucial because the date from input is 'YYYY-MM-DD'
-      const dayOfWeekIndex = getDay(parseISO(selectedDate));
+      const dayOfWeekIndex = selectedDate.getDay();
       const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
       const availabilityForDay = selectedBarber.availability[dayOfWeekName];
 
@@ -121,28 +124,20 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
         user.uid,
         clientName,
         selectedService,
-        selectedDate,
+        format(selectedDate!, 'yyyy-MM-dd'),
         selectedTime
     );
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
       setSelectedService('');
-      setSelectedDate('');
+      setSelectedDate(undefined);
       setSelectedTime('');
       setErrors({});
     } else {
       toast({ title: "Erro", description: result.message, variant: "destructive" });
     }
     setIsLoading(false);
-  };
-  
-  const getTodayString = () => {
-    const today = new Date();
-    // Adjust for timezone offset to get the correct local date
-    const offset = today.getTimezoneOffset();
-    const todayWithOffset = new Date(today.getTime() - (offset * 60 * 1000));
-    return todayWithOffset.toISOString().split('T')[0];
   };
 
   return (
@@ -222,7 +217,30 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
-                    <Input type="date" id="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mt-1" min={getTodayString()} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal mt-1",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <Icons.Calendar className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
                   </div>
                   <div>
