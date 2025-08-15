@@ -31,23 +31,9 @@ export default function LoginPage() {
           setShowVerificationLink(true);
           setError("Por favor, verifique seu e-mail antes de continuar.");
         } else {
-          // Check if user is a barber or client
-          const checkUserRole = async () => {
-            const barberRef = doc(db, 'barbers', user.uid);
-            const clientRef = doc(db, 'clients', user.uid);
-            const [barberSnap, clientSnap] = await Promise.all([getDoc(barberRef), getDoc(clientRef)]);
-            
-            if (barberSnap.exists()) {
-                router.push('/dashboard');
-            } else if (clientSnap.exists()) {
-                router.push('/booking');
-            } else {
-                // User exists in Auth but not in Firestore collections, maybe during signup process
-                // Or let's just default to client booking page
-                 router.push('/booking');
-            }
-          };
-          checkUserRole();
+            // Se o usuário estiver logado e verificado, o AuthGuard nas páginas protegidas cuidará do redirecionamento.
+            // Por padrão, podemos tentar enviá-lo para o dashboard. O AuthGuard fará a correção se necessário.
+            router.push('/dashboard');
         }
     }
   }, [user, loading, router]);
