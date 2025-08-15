@@ -4,27 +4,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    // Barbers can be read by anyone, but only the barber can write to their own profile.
+    match /barbers/{barberId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == barberId;
     }
 
-    match /barbers/{userId} {
-      allow get, list: if request.auth != null;
-      allow create: if isOwner(userId)
-                    && request.resource.data.profileComplete == false
-                    && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isOwner(userId);
-
-      // Allow authenticated users to create appointments,
-      // but only the barber can read/update/delete them.
-      match /appointments/{appointmentId} {
-        allow create: if request.auth != null;
-        allow read, update, delete: if isOwner(userId);
-      }
+    // Appointments can be created by a logged-in client for themselves.
+    // Barbers can read their own appointments.
+    match /barbers/{barberId}/appointments/{appointmentId} {
+      allow read: if request.auth != null && request.auth.uid == barberId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.clientUid;
+      allow update, delete: if false; // Not implemented yet
     }
 
-    match /clients/{userId} {
-      allow read, write: if isOwner(userId);
+    // Clients can only read and write their own data.
+    match /clients/{clientId} {
+      allow read, write: if request.auth != null && request.auth.uid == clientId;
     }
   }
 }
