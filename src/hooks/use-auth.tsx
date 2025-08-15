@@ -16,14 +16,15 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 // Interface para o tipo do contexto de autenticação
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<any>;
-  signUpWithEmail: (email: string, password: string) => Promise<any>;
+  signUpWithEmail: (email: string, password: string, fullName: string, phone: string) => Promise<any>;
   signInWithGoogle: () => Promise<any>;
   signOut: () => Promise<void>;
 }
@@ -66,10 +67,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUpWithEmail = (email: string, password: string) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const signUpWithEmail = async (email: string, password: string, fullName: string, phone: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    await setDoc(doc(db, 'barbers', user.uid), {
+      uid: user.uid,
+      fullName: fullName,
+      email: user.email,
+      phone: phone,
+      profileComplete: false,
+    });
+    return userCredential;
   };
-
+  
   const signInWithGoogle = () => {
     const provider = new GoogleAuthProvider();
     return signInWithPopup(auth, provider);

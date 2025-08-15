@@ -31,7 +31,7 @@ export default function SignUpPage() {
     }
     setError(null);
     try {
-      await signUpWithEmail(email, password);
+      await signUpWithEmail(email, password, fullName, phone);
       toast({ title: 'Sucesso!', description: 'Cadastro realizado. Redirecionando...' });
       router.push('/profile-setup');
     } catch (err: any) {
