@@ -43,10 +43,11 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm() || !selectedBarber || !user) {
-        if (!user) {
-            toast({ title: "Erro", description: "Você precisa estar logado para agendar.", variant: "destructive" });
-        }
+    if (!user) {
+        toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para agendar.", variant: "destructive" });
+        return;
+    }
+    if (!validateForm() || !selectedBarber) {
         return;
     }
     
