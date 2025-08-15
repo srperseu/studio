@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icons } from '@/components/icons';
+import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const { user, loading, signInWithEmail, signInWithGoogle, sendVerificationEmail } = useAuth();
@@ -24,14 +25,10 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-        if (!user.emailVerified) {
-          setShowVerificationLink(true);
-          setError("Por favor, verifique seu e-mail antes de continuar.");
-        } else {
-            // A verificação de perfil será feita pelo useAuthGuard no dashboard
-            router.push('/dashboard');
-        }
+    // Apenas redireciona se o usuário já está logado E verificado.
+    // A lógica de "não verificado" será tratada após a tentativa de login.
+    if (!loading && user && user.emailVerified) {
+      router.push('/dashboard');
     }
   }, [user, loading, router]);
   
@@ -42,11 +39,11 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmail(email, password);
+      // O useEffect cuidará do redirecionamento se o email for verificado.
       if (userCredential.user && !userCredential.user.emailVerified) {
         setShowVerificationLink(true);
         setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
       }
-      // O useEffect cuidará do redirecionamento
     } catch (err: any) {
         if (err.code === 'auth/invalid-credential') {
             setError('Credenciais inválidas. Verifique seu e-mail e senha.');
@@ -60,7 +57,6 @@ export default function LoginPage() {
   };
   
   const handleResendVerification = async () => {
-    // Tentativa de reenviar mesmo se o objeto `user` do hook ainda não estiver atualizado
     const currentUser = auth.currentUser;
     if (!currentUser) {
         toast({ title: 'Erro', description: 'Você precisa estar logado para reenviar o e-mail.', variant: 'destructive'});
@@ -116,7 +112,7 @@ export default function LoginPage() {
                <Icons.Mail className="h-4 w-4" />
                <AlertTitle>Verificação Necessária</AlertTitle>
                <AlertDescription>
-                 Seu e-mail não foi verificado. 
+                 {error}
                  <button onClick={handleResendVerification} className="underline font-bold ml-1">Reenviar e-mail</button>
                </AlertDescription>
              </Alert>
