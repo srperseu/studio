@@ -1,13 +1,15 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-import type { Barber } from '@/lib/types';
+import type { Barber, Client } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -26,6 +28,21 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Reliably fetch the client's full name from their Firestore profile.
+    async function fetchClientProfile() {
+      if (user && !user.displayName) {
+        const clientRef = doc(db, 'clients', user.uid);
+        const docSnap = await getDoc(clientRef);
+        if (docSnap.exists()) {
+          const clientData = docSnap.data() as Client;
+          setClientName(clientData.fullName);
+        }
+      }
+    }
+    fetchClientProfile();
+  }, [user]);
 
   const selectedBarber = useMemo(() => {
     return barbers.find(b => b.id === selectedBarberId);
@@ -133,7 +150,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <form onSubmit={onSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" />
+                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required/>
                   {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
                 <div>
