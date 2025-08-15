@@ -1,7 +1,7 @@
 
 'use server';
 
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
@@ -73,6 +73,7 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
     return { success: true, message: 'Agendamento realizado com sucesso!' };
   } catch (error: any) {
+    console.error("Error creating booking: ", error);
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
