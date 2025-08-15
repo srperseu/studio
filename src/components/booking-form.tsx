@@ -23,21 +23,25 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const [clientName, setClientName] = useState(user?.displayName || '');
+  const [clientName, setClientName] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Reliably fetch the client's full name from their Firestore profile.
+    // Reliably fetch the client's full name from their Firestore profile,
+    // as user.displayName can be ambiguous if the user is also a barber.
     async function fetchClientProfile() {
-      if (user && !user.displayName) {
+      if (user) {
         const clientRef = doc(db, 'clients', user.uid);
         const docSnap = await getDoc(clientRef);
         if (docSnap.exists()) {
           const clientData = docSnap.data() as Client;
           setClientName(clientData.fullName);
+        } else {
+            // Fallback to display name if client profile doesn't exist for some reason
+            setClientName(user.displayName || '');
         }
       }
     }
