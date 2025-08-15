@@ -20,40 +20,41 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
       const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
       const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-      if (user) {
-        // User is signed in. Check profile status.
-        try {
-          const userDocRef = doc(db, 'barbers', user.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (userDoc.exists() && userDoc.data().profileComplete) {
-            // Profile is complete. Redirect from auth pages to dashboard.
-            if (isAuthRoute) {
-              router.replace('/dashboard');
-            } else {
-              setLoading(false);
-            }
-          } else {
-            // Profile is not complete. Force profile setup if not already there.
-            if (pathname !== '/profile-setup') {
-              router.replace('/profile-setup');
-            } else {
-              setLoading(false);
-            }
-          }
-        } catch (error) {
-           console.error("Error fetching user document:", error);
-           // Fallback: if we can't check the profile, redirect to login to be safe
-           await auth.signOut();
-           router.replace('/login');
-        }
-      } else {
-        // User is signed out. Redirect protected routes to login.
+      if (!user) {
+        // Not logged in
         if (isProtectedRoute) {
           router.replace('/login');
         } else {
           setLoading(false);
         }
+        return;
+      }
+
+      // User is logged in
+      try {
+        const userDocRef = doc(db, 'barbers', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        const profileComplete = userDoc.exists() && userDoc.data().profileComplete;
+
+        if (profileComplete) {
+          // Profile is complete, can access dashboard. Redirect from auth routes.
+          if (isAuthRoute) {
+            router.replace('/dashboard');
+          } else {
+            setLoading(false);
+          }
+        } else {
+          // Profile is not complete, must go to setup.
+          if (pathname !== '/profile-setup') {
+            router.replace('/profile-setup');
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user document:", error);
+        await auth.signOut();
+        router.replace('/login');
       }
     });
 
