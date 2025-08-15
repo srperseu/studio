@@ -1,37 +1,37 @@
+
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
-import Link from 'next/link';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, FormEvent } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 import { Button } from '@/components/ui/button';
-import { Input } from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icons } from '@/components/icons';
-import { auth } from '@/lib/firebase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
-  const { user, loading, signInWithEmail, signInWithGoogle, sendVerificationEmail } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [showVerificationLink, setShowVerificationLink] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showVerificationLink, setShowVerificationLink] = useState(false);
+  const { user, loading, signInWithEmail, signInWithGoogle, sendVerificationEmail } = useAuth();
 
   useEffect(() => {
-    // Apenas redireciona se o usuário já está logado E verificado.
-    // A lógica de "não verificado" será tratada após a tentativa de login.
-    if (!loading && user && user.emailVerified) {
-      router.push('/dashboard');
+    if (loading) return;
+    // If user is logged in, verified, and on the login page, redirect them.
+    if (user && user.emailVerified) {
+        // This simple redirect is enough. useAuthGuard on destination will handle roles.
+        router.replace('/dashboard');
     }
   }, [user, loading, router]);
-  
+
+
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -39,125 +39,130 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmail(email, password);
-      // O useEffect cuidará do redirecionamento se o email for verificado.
       if (userCredential.user && !userCredential.user.emailVerified) {
         setShowVerificationLink(true);
         setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
+        setIsSubmitting(false); // Stop submission process
+        return;
       }
+      // Successful login will be handled by the useEffect
     } catch (err: any) {
-        if (err.code === 'auth/invalid-credential') {
-            setError('Credenciais inválidas. Verifique seu e-mail e senha.');
-        } else {
-            setError('Falha ao fazer login. Tente novamente mais tarde.');
-        }
-        console.error(err);
+      if (err.code === 'auth/invalid-credential') {
+        setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+      } else {
+        setError('Ocorreu um erro inesperado. Tente novamente.');
+      }
     } finally {
+      // Only set to false if it wasn't already set by the verification check
+      if (!showVerificationLink) {
         setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      // Successful login will be handled by the useEffect
+    } catch (error: any) {
+      setError(`Erro ao logar com Google: ${error.message}`);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+        await sendVerificationEmail();
+        setError("E-mail de verificação reenviado. Verifique sua caixa de entrada.");
+    } catch (error: any) {
+        setError("Falha ao reenviar o e-mail de verificação.");
     }
   };
   
-  const handleResendVerification = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        toast({ title: 'Erro', description: 'Você precisa estar logado para reenviar o e-mail.', variant: 'destructive'});
-        return;
-    }
-    try {
-        await sendVerificationEmail();
-        toast({ title: 'Sucesso', description: 'E-mail de verificação reenviado!'});
-        setShowVerificationLink(false);
-        setError("Um novo e-mail foi enviado. Verifique sua caixa de entrada.");
-    } catch (error) {
-        toast({ title: 'Erro', description: 'Não foi possível reenviar o e-mail. Tente novamente mais tarde.', variant: 'destructive'});
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    setIsSubmitting(true);
-    try {
-        await signInWithGoogle();
-        // O redirecionamento será tratado pelo useEffect.
-    } catch (err: any) {
-        setError('Falha ao fazer login com o Google.');
-        console.error(err);
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  if (loading) {
+  if (loading || (user && user.emailVerified)) {
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-          <div className="flex flex-col items-center gap-4">
-            <Icons.Spinner className="h-8 w-8" />
-            <h1 className="text-2xl font-headline">Carregando...</h1>
-          </div>
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <Icons.Spinner className="h-8 w-8" />
+          <h1 className="text-2xl font-headline">Carregando...</h1>
         </div>
+      </div>
     );
   }
 
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-background">
-      <Card className="mx-auto max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Entre com seu email e senha para acessar sua conta
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {showVerificationLink && (
-             <Alert variant="destructive" className="mb-4">
-               <Icons.Mail className="h-4 w-4" />
-               <AlertTitle>Verificação Necessária</AlertTitle>
-               <AlertDescription>
-                 {error}
-                 <button onClick={handleResendVerification} className="underline font-bold ml-1">Reenviar e-mail</button>
-               </AlertDescription>
-             </Alert>
-          )}
-          {error && !showVerificationLink && <p className="text-destructive text-sm mb-4">{error}</p>}
-          
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="m@example.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required 
-              />
+    <main className="flex min-h-screen w-full items-center justify-center bg-background p-4 font-body">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+            <h1 className="text-5xl font-bold font-headline text-primary">BarberFlow</h1>
+            <p className="text-muted-foreground mt-2">Faça login ou cadastre-se para continuar</p>
+        </div>
+        <Card className="bg-card border-border shadow-lg">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              {error && (
+                 <Alert variant="destructive" className="text-sm">
+                    <AlertDescription>{error}</AlertDescription>
+                    {showVerificationLink && (
+                        <button onClick={handleResendVerification} className="underline font-bold mt-2 block">
+                            Reenviar e-mail
+                        </button>
+                    )}
+                 </Alert>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? <Icons.Spinner /> : 'Login'}
+              </Button>
+            </form>
+            
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Ou continue com</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? <Icons.Spinner /> : 'Login'}
+
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+              <Icons.Mail className="mr-2 h-4 w-4" /> {/* Using Mail as placeholder for Google icon */}
+              Login com Google
             </Button>
-            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={isSubmitting}>
-              {isSubmitting ? <Icons.Spinner /> : 'Login com Google'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            <p>
-              Não tem uma conta?{" "}
-              <Link href="/signup" className="text-primary hover:underline font-semibold">
+            
+            <div className="mt-4 text-center text-sm">
+              Não tem uma conta?{' '}
+              <Link href="/signup" className="underline hover:text-primary">
                 Cadastre-se
               </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }

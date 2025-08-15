@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -21,7 +22,8 @@ export default function SignUpBarberPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'form' | 'verify'>('form');
-  const { signUpBarberWithEmail, loading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signUpBarberWithEmail } = useAuth();
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,7 @@ export default function SignUpBarberPage() {
       return;
     }
     setError(null);
+    setIsSubmitting(true);
     try {
       await signUpBarberWithEmail(email, password, fullName, phone);
       setStep('verify');
@@ -39,7 +42,8 @@ export default function SignUpBarberPage() {
       } else {
         setError('Falha ao criar a conta. Tente novamente.');
       }
-      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -130,14 +134,16 @@ export default function SignUpBarberPage() {
               <div className="text-sm text-destructive">
                 <p>{error}</p>
                 {error.includes('em uso') && (
-                  <Link href="/" className="underline font-semibold hover:text-primary">
-                    Fazer login?
-                  </Link>
+                  <div className='mt-2'>
+                    <Link href="/" className="underline font-semibold hover:text-primary">
+                      Fazer login?
+                    </Link>
+                  </div>
                 )}
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Icons.Spinner /> : 'Criar conta'}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? <Icons.Spinner /> : 'Criar conta'}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
