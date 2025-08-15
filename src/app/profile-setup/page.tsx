@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Icons } from '@/components/icons';
 import type { Barber } from '@/lib/types';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const defaultAvailability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -27,7 +28,7 @@ const defaultAvailability = {
 };
 
 export default function ProfileSetupPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,11 +48,7 @@ export default function ProfileSetupPage() {
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, authLoading, router]);
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
     if (user) {
@@ -175,8 +172,21 @@ export default function ProfileSetupPage() {
                   <Icons.MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input type="text" id="address" name="address" value={profile.address || ''} onChange={handleChange} placeholder="Rua, Número, Bairro, Cidade - Estado" className="w-full pl-10" />
                 </div>
-                <div className="mt-4 h-48 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border">
-                  Simulação do Mapa (API do Google Maps)
+                <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
+                  {mapsApiKey && profile.address ? (
+                     <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(profile.address)}`}>
+                      </iframe>
+                  ) : (
+                    <p className="text-center p-4">
+                      {profile.address ? 'Chave da API do Google Maps não configurada.' : 'Digite um endereço para ver o mapa.'}
+                    </p>
+                  )}
                 </div>
               </Card>
 
