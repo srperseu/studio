@@ -113,7 +113,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para agendar.", variant: "destructive" });
         return;
     }
-    if (!validateForm() || !selectedBarber) {
+    if (!validateForm() || !selectedBarber || !selectedDate) {
         return;
     }
     
@@ -124,7 +124,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
         user.uid,
         clientName,
         selectedService,
-        format(selectedDate!, 'yyyy-MM-dd'),
+        format(selectedDate, 'yyyy-MM-dd'),
         selectedTime
     );
 
