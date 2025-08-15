@@ -1,71 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
-import { signIn } from '@/app/actions';
+import { useState, useEffect, FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from "@/components/ui/input";
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Icons } from '@/components/icons';
+
 
 export default function LoginPage() {
+  // Obtém o usuário, o estado de carregamento e as funções do hook de autenticação
+  const { user, loading, signInWithEmail, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError(null);
+  // Efeito que redireciona o usuário se ele já estiver logado
+  useEffect(() => {
+    // A condição !loading garante que o redirecionamento só ocorra
+    // após a verificação inicial do estado de autenticação.
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
-    const result = await signIn({ email, password });
-    
-    if (result.success) {
-      toast({
-        title: 'Sucesso!',
-        description: result.message,
-      });
-      if (result.profileComplete) {
-        router.push('/dashboard');
-      } else {
-        router.push('/profile-setup');
-      }
-    } else {
-      toast({
-        title: 'Erro de Login',
-        description: result.message,
-        variant: 'destructive',
-      });
-      setError(result.message ?? 'Ocorreu um erro.');
-      setIsLoading(false);
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await signInWithEmail(email, password);
+      // O redirecionamento agora é tratado pelo useEffect.
+      // A linha router.push('/dashboard') foi removida daqui.
+    } catch (err: any) {
+      setError('Falha ao fazer login. Verifique suas credenciais.');
+      console.error(err);
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+        await signInWithGoogle();
+        // O redirecionamento também será tratado pelo useEffect.
+    } catch (err: any) {
+        setError('Falha ao fazer login com o Google.');
+        console.error(err);
+    }
+  };
+
+  // Exibe um estado de carregamento enquanto o status de autenticação é verificado
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Carregando...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
-      <Card className="w-full max-w-md bg-card border-border">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold font-headline">Login do Barbeiro</CardTitle>
-          <CardDescription>Acesse seu painel de controle</CardDescription>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="mx-auto max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Entre com seu email e senha para acessar sua conta
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Icons.Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="seu@email.com" 
-                  className="pl-10" 
+                  placeholder="m@example.com" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
@@ -74,32 +82,34 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center">
+              </div>
                 <Input 
                   id="password" 
                   type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10" 
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required 
                 />
-              </div>
             </div>
-            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
-            <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
-              {isLoading && <Icons.Spinner className="mr-2 h-4 w-4" />}
-              {isLoading ? 'Entrando...' : 'Entrar'}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <Button type="submit" className="w-full">
+              Login
+            </Button>
+            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn}>
+              Login com Google
             </Button>
           </form>
-          <div className="text-center mt-6 space-y-2">
+          <div className="mt-4 text-center text-sm">
             <p>
-              Não tem uma conta?{' '}
+              Não tem uma conta?{" "}
               <Link href="/signup" className="text-primary hover:underline font-semibold">
                 Cadastre-se
               </Link>
             </p>
+          </div>
+          <div className="text-center mt-6 space-y-2">
+
             <p>
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
                 Ver como cliente
