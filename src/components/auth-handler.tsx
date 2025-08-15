@@ -22,23 +22,30 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
 
       if (user) {
         // User is signed in. Check profile status.
-        const userDocRef = doc(db, 'barbers', user.uid);
-        const userDoc = await getDoc(userDocRef);
+        try {
+          const userDocRef = doc(db, 'barbers', user.uid);
+          const userDoc = await getDoc(userDocRef);
 
-        if (userDoc.exists() && userDoc.data().profileComplete) {
-          // Profile is complete. Redirect from auth pages to dashboard.
-          if (isAuthRoute) {
-            router.replace('/dashboard');
+          if (userDoc.exists() && userDoc.data().profileComplete) {
+            // Profile is complete. Redirect from auth pages to dashboard.
+            if (isAuthRoute) {
+              router.replace('/dashboard');
+            } else {
+              setLoading(false);
+            }
           } else {
-            setLoading(false);
+            // Profile is not complete. Force profile setup.
+            if (pathname !== '/profile-setup') {
+              router.replace('/profile-setup');
+            } else {
+              setLoading(false);
+            }
           }
-        } else {
-          // Profile is not complete. Force profile setup.
-          if (pathname !== '/profile-setup') {
-            router.replace('/profile-setup');
-          } else {
-            setLoading(false);
-          }
+        } catch (error) {
+           console.error("Error fetching user document:", error);
+           // Fallback: if we can't check the profile, redirect to login to be safe
+           await auth.signOut();
+           router.replace('/login');
         }
       } else {
         // User is signed out. Redirect protected routes to login.
