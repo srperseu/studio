@@ -33,13 +33,12 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     const result = await signIn(values);
+    
     if (result.success) {
       toast({
         title: 'Sucesso!',
         description: result.message,
       });
-      // The AuthHandler will now take care of the redirection logic.
-      // We can simply push to a default protected route and let it handle the rest.
       if (result.profileComplete) {
         router.push('/dashboard');
       } else {
