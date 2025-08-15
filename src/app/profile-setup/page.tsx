@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { useAuth } from '@/hooks/use-auth';
 import { updateProfile, generateBioAction, getBarberProfile } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Icons } from '@/components/icons';
 import type { Barber } from '@/lib/types';
 
@@ -28,7 +27,7 @@ const defaultAvailability = {
 };
 
 export default function ProfileSetupPage() {
-  const { user, loading: authLoading } = useAuthGuard();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +46,12 @@ export default function ProfileSetupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (user) {
@@ -96,8 +101,6 @@ export default function ProfileSetupPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setPreviewImage(URL.createObjectURL(file));
-      // In a real app, you would upload the file to Firebase Storage and get a URL.
-      // For this demo, we'll use a placeholder URL.
       setProfile(prev => ({ ...prev, photoURL: 'https://placehold.co/128x128.png' }));
     }
   };

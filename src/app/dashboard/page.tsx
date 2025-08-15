@@ -12,7 +12,7 @@ export default function BarberDashboard() {
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
           <Icons.Spinner className="h-8 w-8" />
-          <h1 className="text-2xl font-headline">Carregando a Barbearia Digital...</h1>
+          <h1 className="text-2xl font-headline">Carregando...</h1>
         </div>
       </div>
     );

@@ -6,8 +6,9 @@ import { auth, db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
 import { revalidatePath } from 'next/cache';
+import type { Barber } from '@/lib/types';
 
-export async function signUp(data: Record<string, string>) {
+export async function signUp(data: Record<string, any>) {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
     const user = userCredential.user;
@@ -29,9 +30,8 @@ export async function signIn(data: Record<string, string>) {
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
     const user = userCredential.user;
     
-    // Check if profile is complete
     const profileSnap = await getDoc(doc(db, 'barbers', user.uid));
-    const profileComplete = profileSnap.exists() && profileSnap.data().profileComplete;
+    const profileComplete = profileSnap.exists() && profileSnap.data()?.profileComplete;
 
     return { success: true, message: 'Login bem-sucedido!', profileComplete };
   } catch (error: any) {
@@ -65,7 +65,7 @@ export async function getBarberProfile(uid: string) {
     const docRef = doc(db, "barbers", uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { success: true, data: docSnap.data() };
+      return { success: true, data: docSnap.data() as Barber };
     }
     return { success: false, message: "No such document!" };
   } catch (error: any) {

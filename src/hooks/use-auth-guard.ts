@@ -4,15 +4,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './use-auth';
 
-export const useAuthGuard = (redirectTo = '/login') => {
+export const useAuthGuard = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace(redirectTo);
+      router.replace('/login');
     }
-  }, [user, loading, router, redirectTo]);
+  }, [user, loading, router]);
 
   return { user, loading };
 };
