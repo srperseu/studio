@@ -2,12 +2,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /barbers/{barberId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == barberId;
+    match /barbers/{userId} {
+      // Allow public read for booking page if profile is complete
+      allow read: if resource.data.profileComplete == true || request.auth.uid == userId;
+      // Allow authenticated users to write to their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
 
       match /appointments/{appointmentId} {
-        allow read, write: if request.auth != null && request.auth.uid == barberId;
+        // Allow anyone to create a booking
+        allow create: if true;
+        // Allow the barber (owner of the subcollection) to read their appointments
+        allow read: if request.auth != null && request.auth.uid == userId;
       }
     }
   }
