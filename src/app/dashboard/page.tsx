@@ -1,20 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { DashboardClient } from "@/components/dashboard-client";
 import { Icons } from "@/components/icons";
 
 export default function BarberDashboard() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    }
-  }, [user, loading, router]);
+  const { user, loading } = useAuthGuard();
 
   if (loading || !user) {
     return (

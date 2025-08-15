@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { updateProfile, generateBioAction, getBarberProfile } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ const defaultAvailability = {
 };
 
 export default function ProfileSetupPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuthGuard();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,10 +49,6 @@ export default function ProfileSetupPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-        router.replace('/login');
-        return;
-    }
     if (user) {
       const fetchProfile = async () => {
         setIsPageLoading(true);
@@ -71,7 +67,7 @@ export default function ProfileSetupPage() {
       };
       fetchProfile();
     }
-  }, [user, authLoading, router]);
+  }, [user]);
 
   const handleGenerateDescription = async () => {
     if (!profile.description) {
