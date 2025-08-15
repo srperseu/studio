@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -58,7 +59,6 @@ export default function ProfileSetupClientPage() {
       const clientRef = doc(db, 'clients', user.uid);
       await setDoc(clientRef, { ...profile, profileComplete: true }, { merge: true });
       toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
-      router.push('/booking');
     } catch (error: any) {
       console.error("Erro ao salvar o perfil do cliente: ", error);
       toast({ title: 'Erro', description: `Erro ao salvar: ${error.message}`, variant: 'destructive' });
@@ -84,7 +84,7 @@ export default function ProfileSetupClientPage() {
         <Header title="Configurar seu Perfil" showBackButton />
         <Card className="bg-card border-border mt-8">
           <CardHeader>
-            <CardDescription>Complete seu perfil para facilitar seus agendamentos.</CardDescription>
+            <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -124,7 +124,7 @@ export default function ProfileSetupClientPage() {
               
               <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
                  {isLoading && <Icons.Spinner className="mr-2 h-4 w-4" />}
-                {isLoading ? 'Salvando...' : 'Salvar Endereço e Concluir'}
+                {isLoading ? 'Salvando...' : 'Salvar Endereço'}
               </Button>
             </form>
           </CardContent>

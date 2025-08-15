@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       fullName: fullName,
       email: user.email,
       phone: phone,
-      profileComplete: false,
+      profileComplete: true, // Define as true on creation
     });
     return userCredential;
   };
