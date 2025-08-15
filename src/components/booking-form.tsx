@@ -3,9 +3,6 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 
@@ -16,43 +13,52 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
 
-const bookingSchema = z.object({
-  clientName: z.string().min(1, 'Seu nome é obrigatório'),
-  selectedService: z.string().min(1, 'Selecione um serviço'),
-  selectedDate: z.string().min(1, 'Selecione uma data'),
-  selectedTime: z.string().min(1, 'Selecione um horário'),
-});
-
-type BookingFormValues = z.infer<typeof bookingSchema>;
-
 export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-        clientName: '',
-        selectedService: '',
-        selectedDate: '',
-        selectedTime: ''
-    }
-  });
+  const [clientName, setClientName] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedBarber = useMemo(() => {
     return barbers.find(b => b.id === selectedBarberId);
   }, [barbers, selectedBarberId]);
 
-  const onSubmit = async (data: BookingFormValues) => {
-    if (!selectedBarber) return;
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!clientName) newErrors.clientName = 'Seu nome é obrigatório';
+    if (!selectedService) newErrors.selectedService = 'Selecione um serviço';
+    if (!selectedDate) newErrors.selectedDate = 'Selecione uma data';
+    if (!selectedTime) newErrors.selectedTime = 'Selecione um horário';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm() || !selectedBarber) return;
+    
     setIsLoading(true);
-    const result = await createBooking(selectedBarber.id, data);
-    if(result.success) {
-        toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
-        reset();
+    const result = await createBooking(selectedBarber.id, {
+      clientName,
+      selectedService,
+      selectedDate,
+      selectedTime,
+    });
+
+    if (result.success) {
+      toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
+      setClientName('');
+      setSelectedService('');
+      setSelectedDate('');
+      setSelectedTime('');
+      setErrors({});
     } else {
-        toast({ title: "Erro", description: result.message, variant: "destructive" });
+      toast({ title: "Erro", description: result.message, variant: "destructive" });
     }
     setIsLoading(false);
   };
@@ -104,42 +110,36 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={onSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                  <Input id="clientName" {...register('clientName')} className="mt-1" />
-                  {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName.message}</p>}
+                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" />
+                  {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
                 <div>
                     <label htmlFor="service" className="block text-sm font-medium text-muted-foreground">Serviço</label>
-                    <Controller
-                        control={control}
-                        name="selectedService"
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger id="service" className="mt-1">
-                                    <SelectValue placeholder="Selecione um serviço" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="" disabled>Selecione um serviço</SelectItem>
-                                    {selectedBarber.services.inShop.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
-                                    {selectedBarber.services.atHome.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                    {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService.message}</p>}
+                    <Select onValueChange={setSelectedService} value={selectedService}>
+                        <SelectTrigger id="service" className="mt-1">
+                            <SelectValue placeholder="Selecione um serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="" disabled>Selecione um serviço</SelectItem>
+                            {selectedBarber.services.inShop.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
+                            {selectedBarber.services.atHome.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
+                        </SelectContent>
+                    </Select>
+                    {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
-                    <Input type="date" id="date" {...register('selectedDate')} className="mt-1" />
-                    {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate.message}</p>}
+                    <Input type="date" id="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mt-1" />
+                    {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
                   </div>
                   <div>
                     <label htmlFor="time" className="block text-sm font-medium text-muted-foreground">Horário</label>
-                    <Input type="time" id="time" {...register('selectedTime')} className="mt-1" />
-                    {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime.message}</p>}
+                    <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="mt-1" />
+                    {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime}</p>}
                   </div>
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
