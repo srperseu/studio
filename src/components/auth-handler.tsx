@@ -1,36 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useAuth, AuthProvider } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
 import { Icons } from '@/components/icons';
 
 const protectedRoutes = ['/dashboard', '/profile-setup'];
 const authRoutes = ['/login', '/signup'];
 
-export function AuthHandler({ children }: { children: React.ReactNode }) {
+function AuthChecker({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-      const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    if (loading) return; // Wait for auth state to be confirmed
 
-      if (!user) {
-        // Not logged in
-        if (isProtectedRoute) {
-          router.replace('/login');
-        } else {
-          setLoading(false);
-        }
-        return;
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+
+    if (!user) {
+      // Not logged in
+      if (isProtectedRoute) {
+        router.replace('/login');
       }
+      return;
+    }
 
-      // User is logged in
+    // User is logged in
+    const checkProfile = async () => {
       try {
         const userDocRef = doc(db, 'barbers', user.uid);
         const userDoc = await getDoc(userDocRef);
@@ -40,28 +40,25 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
           // Profile is complete, can access dashboard. Redirect from auth routes.
           if (isAuthRoute) {
             router.replace('/dashboard');
-          } else {
-            setLoading(false);
           }
         } else {
           // Profile is not complete, must go to setup.
           if (pathname !== '/profile-setup') {
             router.replace('/profile-setup');
-          } else {
-            setLoading(false);
           }
         }
       } catch (error) {
         console.error("Error fetching user document:", error);
-        await auth.signOut();
+        // Handle error appropriately, maybe sign out user
         router.replace('/login');
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [pathname, router]);
+    checkProfile();
 
-  if (loading) {
+  }, [user, loading, pathname, router]);
+
+  if (loading || (protectedRoutes.some(route => pathname.startsWith(route)) && !user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
@@ -73,4 +70,13 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+
+export function AuthHandler({ children }: { children: React.ReactNode }) {
+    return (
+        <AuthProvider>
+            <AuthChecker>{children}</AuthChecker>
+        </AuthProvider>
+    )
 }

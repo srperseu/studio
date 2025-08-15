@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { updateProfile, generateBioAction, getBarberProfile } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
@@ -66,10 +66,8 @@ export default function ProfileSetupPage() {
         setIsPageLoading(false);
       };
       fetchProfile();
-    } else if (!authLoading) {
-      setIsPageLoading(false);
     }
-  }, [user, authLoading]);
+  }, [user]);
 
   const handleGenerateDescription = async () => {
     if (!profile.description) {
