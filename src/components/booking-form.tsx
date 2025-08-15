@@ -123,7 +123,6 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                             <SelectValue placeholder="Selecione um serviço" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="" disabled>Selecione um serviço</SelectItem>
                             {selectedBarber.services?.inShop?.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
                             {selectedBarber.services?.atHome?.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
                         </SelectContent>
