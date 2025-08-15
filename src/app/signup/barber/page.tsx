@@ -126,7 +126,16 @@ export default function SignUpBarberPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && (
+               <p className="text-destructive text-sm">
+                {error}{' '}
+                {error.includes('em uso') && (
+                  <Link href="/" className="underline">
+                    Fazer login?
+                  </Link>
+                )}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Icons.Spinner /> : 'Criar conta'}
             </Button>
