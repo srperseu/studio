@@ -91,3 +91,4 @@ export async function createBooking(
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
+

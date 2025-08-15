@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getDay, parseISO, format } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 import type { Barber, Client } from '@/lib/types';
@@ -198,7 +198,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <form onSubmit={onSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required readOnly={!!user}/>
+                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required disabled={!!user}/>
                   {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
                 <div>
