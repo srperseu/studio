@@ -6,7 +6,7 @@ import { Icons } from "@/components/icons";
 import { Header } from '@/components/header';
 
 export default function BarberDashboard() {
-  const { user, loading } = useAuthGuard();
+  const { user, loading } = useAuthGuard('barber');
 
   if (loading || !user) {
     return (

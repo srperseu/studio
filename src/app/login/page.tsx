@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, FormEvent } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icons } from '@/components/icons';
 
-
 export default function LoginPage() {
   const { user, loading, signInWithEmail, signInWithGoogle, sendVerificationEmail } = useAuth();
   const router = useRouter();
@@ -22,22 +23,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showVerificationLink, setShowVerificationLink] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
-      if (!user.emailVerified) {
-        setShowVerificationLink(true);
-        setError("Por favor, verifique seu e-mail antes de continuar.");
-      } else {
-        router.push('/dashboard');
-      }
+        if (!user.emailVerified) {
+          setShowVerificationLink(true);
+          setError("Por favor, verifique seu e-mail antes de continuar.");
+        } else {
+          // Check if user is a barber
+          const checkUserRole = async () => {
+            const barberRef = doc(db, 'barbers', user.uid);
+            const barberSnap = await getDoc(barberRef);
+            if (barberSnap.exists()) {
+                router.push('/dashboard');
+            } else {
+                // If not a barber, assume client and go to home
+                router.push('/');
+            }
+          };
+          checkUserRole();
+        }
     }
   }, [user, loading, router]);
-
+  
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setShowVerificationLink(false);
+    setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmail(email, password);
       if (userCredential.user && !userCredential.user.emailVerified) {
@@ -52,6 +66,8 @@ export default function LoginPage() {
             setError('Falha ao fazer login. Tente novamente mais tarde.');
         }
         console.error(err);
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -71,12 +87,15 @@ export default function LoginPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
     try {
         await signInWithGoogle();
         // O redirecionamento será tratado pelo useEffect.
     } catch (err: any) {
         setError('Falha ao fazer login com o Google.');
         console.error(err);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -128,11 +147,11 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full">
-              Login
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? <Icons.Spinner /> : 'Login'}
             </Button>
-            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn}>
-              Login com Google
+            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={isSubmitting}>
+              {isSubmitting ? <Icons.Spinner /> : 'Login com Google'}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
@@ -140,13 +159,6 @@ export default function LoginPage() {
               Não tem uma conta?{" "}
               <Link href="/signup" className="text-primary hover:underline font-semibold">
                 Cadastre-se
-              </Link>
-            </p>
-          </div>
-          <div className="text-center mt-6 space-y-2">
-            <p>
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-                Ver como cliente
               </Link>
             </p>
           </div>

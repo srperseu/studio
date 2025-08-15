@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { getBarberProfile } from '@/app/actions';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { generateBioAction } from '@/app/actions';
 
 
 import { Button } from '@/components/ui/button';
@@ -57,9 +57,10 @@ export default function ProfileSetupPage() {
     if (user) {
       const fetchProfile = async () => {
         setIsPageLoading(true);
-        const result = await getBarberProfile(user.uid);
-        if (result.success && result.data) {
-          const data = result.data as Barber;
+        const barberRef = doc(db, 'barbers', user.uid);
+        const docSnap = await getDoc(barberRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as Barber;
           setProfile(prev => ({
              ...prev, 
              ...data,
@@ -82,13 +83,13 @@ export default function ProfileSetupPage() {
       return;
     }
     setIsGeneratingDesc(true);
-    // const result = await generateBioAction(profile.description);
-    // if (result.success && result.bio) {
-    //   setProfile(prev => ({ ...prev, description: result.bio }));
-    //   toast({ title: 'Sucesso', description: 'Descrição gerada com IA!' });
-    // } else {
-    //   toast({ title: 'Erro', description: result.message, variant: 'destructive' });
-    // }
+    const result = await generateBioAction(profile.description);
+    if (result.success && result.bio) {
+      setProfile(prev => ({ ...prev, description: result.bio }));
+      toast({ title: 'Sucesso', description: 'Descrição gerada com IA!' });
+    } else {
+      toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+    }
     setIsGeneratingDesc(false);
   };
 
@@ -141,7 +142,7 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <Header title="Configuração do Perfil" showBackButton />
+        <Header title="Configuração do Perfil de Barbeiro" showBackButton />
         <Card className="bg-card border-border mt-8">
           <CardHeader>
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>

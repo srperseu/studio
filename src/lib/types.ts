@@ -32,6 +32,16 @@ export interface Barber {
   services: Services;
 }
 
+export interface Client {
+    id: string;
+    uid: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    address?: string;
+    profileComplete: boolean;
+}
+
 export interface Appointment {
   id: string;
   clientName: string;
