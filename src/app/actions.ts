@@ -55,10 +55,15 @@ export async function generateReminderAction(appointmentDetails: ReminderDetails
   }
 }
 
-export async function createBooking(barberId: string, bookingData: any, clientUid: string) {
+export async function createBooking(
+  barberId: string,
+  clientUid: string,
+  clientName: string,
+  selectedService: string,
+  selectedDate: string,
+  selectedTime: string
+) {
   try {
-    const { clientName, selectedService, selectedDate, selectedTime } = bookingData;
-    
     if (!selectedService || typeof selectedService !== 'string' || !selectedService.includes('|')) {
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
@@ -75,7 +80,7 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
       clientUid, // Store the client's UID
       service: serviceName,
       type: serviceType,
-      date: selectedDate,
+      date: selectedDate, // Salva a data como string 'YYYY-MM-DD'
       time: selectedTime,
       createdAt: serverTimestamp(),
     });
@@ -86,4 +91,3 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
-

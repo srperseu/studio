@@ -74,14 +74,14 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     
     setIsLoading(true);
 
-    const bookingData = {
-      clientName,
-      selectedService,
-      selectedDate,
-      selectedTime,
-    };
-
-    const result = await createBooking(selectedBarber.id, bookingData, user.uid);
+    const result = await createBooking(
+        selectedBarber.id,
+        user.uid,
+        clientName,
+        selectedService,
+        selectedDate,
+        selectedTime
+    );
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
