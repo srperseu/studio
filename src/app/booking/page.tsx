@@ -1,8 +1,13 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Barber } from '@/lib/types';
 import { BookingForm } from '@/components/booking-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { Icons } from '@/components/icons';
 
 async function getBarbers(): Promise<Barber[]> {
   try {
@@ -19,8 +24,30 @@ async function getBarbers(): Promise<Barber[]> {
   }
 }
 
-export default async function ClientBookingPage() {
-  const barbers = await getBarbers();
+export default function ClientBookingPage() {
+  useAuthGuard('client');
+  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchBarbers() {
+      const barbersData = await getBarbers();
+      setBarbers(barbersData);
+      setIsLoading(false);
+    }
+    fetchBarbers();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <Icons.Spinner className="h-8 w-8" />
+          <h1 className="text-2xl font-headline">Carregando Barbeiros...</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background p-4 sm:p-8 font-body text-foreground">

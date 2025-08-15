@@ -29,6 +29,7 @@ export default function LoginPage() {
           setShowVerificationLink(true);
           setError("Por favor, verifique seu e-mail antes de continuar.");
         } else {
+            // A verificação de perfil será feita pelo useAuthGuard no dashboard
             router.push('/dashboard');
         }
     }
@@ -45,6 +46,7 @@ export default function LoginPage() {
         setShowVerificationLink(true);
         setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
       }
+      // O useEffect cuidará do redirecionamento
     } catch (err: any) {
         if (err.code === 'auth/invalid-credential') {
             setError('Credenciais inválidas. Verifique seu e-mail e senha.');
@@ -58,7 +60,9 @@ export default function LoginPage() {
   };
   
   const handleResendVerification = async () => {
-    if (!user) {
+    // Tentativa de reenviar mesmo se o objeto `user` do hook ainda não estiver atualizado
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
         toast({ title: 'Erro', description: 'Você precisa estar logado para reenviar o e-mail.', variant: 'destructive'});
         return;
     }
@@ -95,6 +99,7 @@ export default function LoginPage() {
         </div>
     );
   }
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-background">

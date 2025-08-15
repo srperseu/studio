@@ -15,7 +15,8 @@ import {
   signOut as firebaseSignOut,
   GoogleAuthProvider,
   signInWithPopup,
-  sendEmailVerification
+  sendEmailVerification,
+  updateProfile
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signUpBarberWithEmail = async (email: string, password: string, fullName: string, phone: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+    await updateProfile(user, { displayName: fullName });
     await sendEmailVerification(user);
     await setDoc(doc(db, 'barbers', user.uid), {
       uid: user.uid,
@@ -82,6 +84,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signUpClientWithEmail = async (email: string, password: string, fullName: string, phone: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+    await updateProfile(user, { displayName: fullName });
     await sendEmailVerification(user);
     await setDoc(doc(db, 'clients', user.uid), {
       uid: user.uid,
