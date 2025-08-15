@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { signOutUser, generateReminderAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
@@ -226,5 +226,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
