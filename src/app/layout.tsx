@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthHandler } from '@/components/auth-handler';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
   title: 'BarberFlow',
@@ -21,9 +21,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <AuthHandler>
+        <AuthProvider>
           {children}
-        </AuthHandler>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>
