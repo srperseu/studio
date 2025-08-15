@@ -66,8 +66,10 @@ export default function ProfileSetupPage() {
         setIsPageLoading(false);
       };
       fetchProfile();
+    } else if (!authLoading) {
+      setIsPageLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const handleGenerateDescription = async () => {
     if (!profile.description) {
@@ -153,7 +155,7 @@ export default function ProfileSetupPage() {
                   </div>
                   <div className="flex-grow w-full space-y-2">
                     <Label htmlFor="description">Descrição / Biografia</Label>
-                    <Textarea id="description" name="description" rows={4} value={profile.description} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
+                    <Textarea id="description" name="description" rows={4} value={profile.description || ''} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
                     <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-accent hover:bg-accent/90">
                       {isGeneratingDesc ? <Icons.Spinner className="mr-2" /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                       {isGeneratingDesc ? 'Gerando...' : 'Gerar Bio com IA'}
@@ -167,7 +169,7 @@ export default function ProfileSetupPage() {
                 <Label htmlFor="address">Endereço da Barbearia</Label>
                 <div className="relative mt-2">
                   <Icons.MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input type="text" id="address" name="address" value={profile.address} onChange={handleChange} placeholder="Rua, Número, Bairro, Cidade - Estado" className="w-full pl-10" />
+                  <Input type="text" id="address" name="address" value={profile.address || ''} onChange={handleChange} placeholder="Rua, Número, Bairro, Cidade - Estado" className="w-full pl-10" />
                 </div>
                 <div className="mt-4 h-48 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border">
                   Simulação do Mapa (API do Google Maps)
