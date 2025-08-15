@@ -32,13 +32,20 @@ export async function generateBioAction(keywords: string) {
   }
 }
 
-export async function generateReminderAction(appointment: any, barberName: string) {
+interface ReminderDetails {
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+}
+
+export async function generateReminderAction(appointmentDetails: ReminderDetails, barberName: string) {
   try {
     const result = await generateAppointmentReminder({
-      clientName: appointment.clientName,
-      service: appointment.service,
-      date: new Date(appointment.date).toLocaleDateString('pt-BR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-      time: appointment.time,
+      clientName: appointmentDetails.clientName,
+      service: appointmentDetails.service,
+      date: new Date(appointmentDetails.date).toLocaleDateString('pt-BR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      time: appointmentDetails.time,
       barberName,
     });
     return { success: true, reminderText: result.reminderText };

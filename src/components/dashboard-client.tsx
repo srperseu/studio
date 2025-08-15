@@ -64,7 +64,16 @@ export function DashboardClient() {
   const handleGenerateReminder = async (appointment: Appointment) => {
     if (!barberData) return;
     setIsGeneratingReminder(appointment.id);
-    const result = await generateReminderAction(appointment, barberData.fullName);
+    
+    // Criar um objeto simples para passar para a Server Action
+    const reminderDetails = {
+      clientName: appointment.clientName,
+      service: appointment.service,
+      date: appointment.date,
+      time: appointment.time,
+    };
+
+    const result = await generateReminderAction(reminderDetails, barberData.fullName);
     if (result.success && result.reminderText) {
       setModalContent({ title: 'Lembrete de Agendamento', body: result.reminderText });
       setIsModalOpen(true);
@@ -155,13 +164,13 @@ export function DashboardClient() {
               </div>
               <div>
                 <h3 className="font-bold text-primary">Serviços</h3>
-                {barberData?.services?.inShop?.active && <p className="text-muted-foreground">Na Barbearia: R$ {barberData.services.inShop.price}</p>}
-                {barberData?.services?.atHome?.active && <p className="text-muted-foreground">Em Domicílio: R$ {barberData.services.atHome.price}</p>}
+                {barberData.services?.inShop?.active && <p className="text-muted-foreground">Na Barbearia: R$ {barberData.services.inShop.price}</p>}
+                {barberData.services?.atHome?.active && <p className="text-muted-foreground">Em Domicílio: R$ {barberData.services.atHome.price}</p>}
               </div>
               <div>
                 <h3 className="font-bold text-primary">Horários</h3>
                 <ul className="text-sm space-y-1 text-muted-foreground">
-                  {Object.entries(barberData.availability || {}).map(([day, data]) => (
+                  {barberData.availability && Object.entries(barberData.availability).map(([day, data]) => (
                     data.active && <li key={day} className="flex justify-between"><span>{day}:</span> <span>{data.start} - {data.end}</span></li>
                   ))}
                 </ul>
