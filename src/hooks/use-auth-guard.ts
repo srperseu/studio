@@ -42,7 +42,9 @@ export const useAuthGuard = (role: Role = 'any') => {
         const isBarber = barberSnap.exists();
         const isClient = clientSnap.exists();
 
+        // If user document doesn't exist in either collection, they need to be directed to signup selection.
         if (!isBarber && !isClient) {
+            // Allow access only to the main signup page, not sub-pages.
             if (pathname !== '/signup') {
                 router.replace('/signup');
             }
@@ -52,19 +54,25 @@ export const useAuthGuard = (role: Role = 'any') => {
         if (isBarber) {
             const barberData = barberSnap.data() as Barber;
             if (!barberData.profileComplete && pathname !== '/profile-setup') {
+                // Force barber to setup profile if not complete.
                 router.replace('/profile-setup');
             } else if (role === 'client') {
+                // If a barber tries to access a client-only page, redirect to their dashboard.
                 router.replace('/dashboard'); 
-            } else if (barberData.profileComplete && pathname === '/') {
+            } else if (barberData.profileComplete && (pathname === '/' || pathname === '/signup')) {
+                // If a fully setup barber is on login/signup, redirect to their dashboard.
                 router.replace('/dashboard');
             }
         } else if (isClient) {
             const clientData = clientSnap.data() as Client;
             if (!clientData.profileComplete && pathname !== '/profile-setup/client') {
+                // Force client to setup profile if not complete.
                 router.replace('/profile-setup/client');
             } else if (role === 'barber') {
+                // If a client tries to access a barber-only page, redirect to their dashboard.
                 router.replace('/dashboard/client'); 
-            } else if (clientData.profileComplete && pathname === '/') {
+            } else if (clientData.profileComplete && (pathname === '/' || pathname === '/signup')) {
+                 // If a fully setup client is on login/signup, redirect to their dashboard.
                 router.replace('/dashboard/client');
             }
         }
