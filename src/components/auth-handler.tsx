@@ -21,19 +21,19 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
       const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
       if (user) {
-        // User is signed in.
+        // User is signed in. Check profile status.
         const userDocRef = doc(db, 'barbers', user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists() && userDoc.data().profileComplete) {
-          // Profile is complete, redirect from auth pages to dashboard
+          // Profile is complete. Redirect from auth pages to dashboard.
           if (isAuthRoute) {
             router.replace('/dashboard');
           } else {
             setLoading(false);
           }
         } else {
-          // Profile is not complete, force profile setup
+          // Profile is not complete. Force profile setup.
           if (pathname !== '/profile-setup') {
             router.replace('/profile-setup');
           } else {
@@ -41,7 +41,7 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        // User is signed out.
+        // User is signed out. Redirect protected routes to login.
         if (isProtectedRoute) {
           router.replace('/login');
         } else {
