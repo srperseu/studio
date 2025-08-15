@@ -2,26 +2,29 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
+    
     match /barbers/{userId} {
-      // Permite que qualquer usuário autenticado leia os perfis dos barbeiros.
       allow get, list: if request.auth != null;
-      // Permite criar, atualizar e deletar um perfil APENAS se o usuário for o dono.
       allow create, update, delete: if isOwner(userId);
-
-      match /appointments/{appointmentId} {
-        // Permite que o barbeiro (dono do perfil) leia e crie agendamentos.
-        allow list, get, create: if isOwner(userId);
-      }
     }
 
     match /clients/{userId} {
-       // Permite ler, criar e atualizar um perfil APENAS se o usuário for o dono.
-      allow get, create, update: if isOwner(userId);
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && request.resource.data.fullName is string
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.phone is string
+                    && request.resource.data.profileComplete == false;
+    }
+
+    match /barbers/{barberId}/appointments/{appointmentId} {
+      allow read, list, create: if request.auth != null;
+      allow update, delete: if exists(/databases/$(database)/documents/barbers/$(request.auth.uid));
     }
   }
 }
