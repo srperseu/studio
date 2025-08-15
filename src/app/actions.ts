@@ -73,7 +73,7 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
     return { success: true, message: 'Agendamento realizado com sucesso!' };
   } catch (error: any) {
-    console.error("Error creating booking: ", error);
+    // console.error("Error creating booking: ", error); // This was causing the issue
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
