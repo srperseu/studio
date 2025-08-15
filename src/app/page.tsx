@@ -4,8 +4,6 @@ import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, FormEvent } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
@@ -31,8 +29,6 @@ export default function LoginPage() {
           setShowVerificationLink(true);
           setError("Por favor, verifique seu e-mail antes de continuar.");
         } else {
-            // Se o usuário estiver logado e verificado, o AuthGuard nas páginas protegidas cuidará do redirecionamento.
-            // Por padrão, podemos tentar enviá-lo para o dashboard. O AuthGuard fará a correção se necessário.
             router.push('/dashboard');
         }
     }
@@ -49,9 +45,8 @@ export default function LoginPage() {
         setShowVerificationLink(true);
         setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
       }
-      // O useEffect cuidará do redirecionamento
     } catch (err: any) {
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        if (err.code === 'auth/invalid-credential') {
             setError('Credenciais inválidas. Verifique seu e-mail e senha.');
         } else {
             setError('Falha ao fazer login. Tente novamente mais tarde.');
@@ -102,7 +97,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-background">
       <Card className="mx-auto max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
@@ -121,7 +116,7 @@ export default function LoginPage() {
                </AlertDescription>
              </Alert>
           )}
-          {error && !showVerificationLink && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          {error && !showVerificationLink && <p className="text-destructive text-sm mb-4">{error}</p>}
           
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="space-y-2">
