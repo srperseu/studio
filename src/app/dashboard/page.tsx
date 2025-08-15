@@ -1,13 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 import { DashboardClient } from "@/components/dashboard-client";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Icons } from "@/components/icons";
 
 export default function BarberDashboard() {
-  const { isLoading, user } = useAuthGuard();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  if (isLoading || !user) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">

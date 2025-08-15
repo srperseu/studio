@@ -49,6 +49,10 @@ export default function ProfileSetupPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+        router.replace('/login');
+        return;
+    }
     if (user) {
       const fetchProfile = async () => {
         setIsPageLoading(true);
@@ -66,10 +70,6 @@ export default function ProfileSetupPage() {
         setIsPageLoading(false);
       };
       fetchProfile();
-    } else if (!authLoading) {
-      // If no user and auth is not loading, it's safer to redirect to login.
-      // This case might happen if the user lands here directly without being logged in.
-      router.replace('/login');
     }
   }, [user, authLoading, router]);
 
@@ -122,8 +122,11 @@ export default function ProfileSetupPage() {
 
   if (authLoading || isPageLoading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <Skeleton className="max-w-4xl mx-auto h-[80vh] bg-card" />
+      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <Icons.Spinner className="h-8 w-8" />
+          <h1 className="text-2xl font-headline">Carregando Perfil...</h1>
+        </div>
       </div>
     );
   }
