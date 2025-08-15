@@ -127,14 +127,14 @@ export default function SignUpClientPage() {
               />
             </div>
             {error && (
-              <p className="text-destructive text-sm">
-                {error}{' '}
+              <div className="text-sm text-destructive">
+                <p>{error}</p>
                 {error.includes('em uso') && (
-                  <Link href="/" className="underline">
+                   <Link href="/" className="underline font-semibold hover:text-primary">
                     Fazer login?
                   </Link>
                 )}
-              </p>
+              </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Icons.Spinner /> : 'Criar conta'}
