@@ -1,19 +1,27 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     match /barbers/{userId} {
-      // Allow public read for booking page if profile is complete
-      allow read: if resource.data.profileComplete == true || request.auth.uid == userId;
-      // Allow authenticated users to write to their own profile
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Permite que qualquer usuário autenticado leia os perfis dos barbeiros.
+      allow get, list: if request.auth != null;
+      // Permite criar, atualizar e deletar um perfil APENAS se o usuário for o dono.
+      allow create, update, delete: if isOwner(userId);
 
       match /appointments/{appointmentId} {
-        // Allow anyone to create a booking
-        allow create: if true;
-        // Allow the barber (owner of the subcollection) to read their appointments
-        allow read: if request.auth != null && request.auth.uid == userId;
+        // Permite que o barbeiro (dono do perfil) leia e crie agendamentos.
+        allow list, get, create: if isOwner(userId);
       }
+    }
+
+    match /clients/{userId} {
+       // Permite ler, criar e atualizar um perfil APENAS se o usuário for o dono.
+      allow get, create, update: if isOwner(userId);
     }
   }
 }
