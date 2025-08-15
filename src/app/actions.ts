@@ -26,8 +26,14 @@ export async function signUp(data: Record<string, string>) {
 
 export async function signIn(data: Record<string, string>) {
   try {
-    await signInWithEmailAndPassword(auth, data.email, data.password);
-    return { success: true, message: 'Login bem-sucedido!' };
+    const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+    const user = userCredential.user;
+    
+    // Check if profile is complete
+    const profileSnap = await getDoc(doc(db, 'barbers', user.uid));
+    const profileComplete = profileSnap.exists() && profileSnap.data().profileComplete;
+
+    return { success: true, message: 'Login bem-sucedido!', profileComplete };
   } catch (error: any) {
     return { success: false, message: 'Credenciais inválidas. Tente novamente.' };
   }

@@ -38,7 +38,11 @@ export default function LoginPage() {
         title: 'Sucesso!',
         description: result.message,
       });
-      router.push('/dashboard');
+      if (result.profileComplete) {
+        router.push('/dashboard');
+      } else {
+        router.push('/profile-setup');
+      }
     } else {
       toast({
         title: 'Erro de Login',

@@ -34,7 +34,7 @@ export function AuthHandler({ children }: { children: React.ReactNode }) {
               setLoading(false);
             }
           } else {
-            // Profile is not complete. Force profile setup.
+            // Profile is not complete. Force profile setup if not already there.
             if (pathname !== '/profile-setup') {
               router.replace('/profile-setup');
             } else {
