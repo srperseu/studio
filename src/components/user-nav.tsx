@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
-import { signOutUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 import {
@@ -20,22 +19,26 @@ import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
 
 export function UserNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    const result = await signOutUser();
-    if (result.success) {
-      toast({ description: result.message });
+    try {
+      await signOut();
+      toast({ description: 'Você saiu da sua conta.' });
       router.push('/login');
-    } else {
-      toast({ description: result.message, variant: 'destructive' });
+    } catch (error: any) {
+      toast({ description: 'Falha ao sair da conta.', variant: 'destructive' });
     }
   };
 
   if (loading) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
+  }
+  
+  if (!user) {
+    return null;
   }
 
   return (
