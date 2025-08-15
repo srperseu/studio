@@ -1,7 +1,6 @@
 'use server';
 
-import { signOut } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
@@ -9,30 +8,7 @@ import { revalidatePath } from 'next/cache';
 import type { Barber } from '@/lib/types';
 
 // As funções de signUp e signIn foram movidas para o hook useAuth para serem executadas no lado do cliente.
-
-export async function signOutUser() {
-  // A função de signOut também foi movida para o hook useAuth.
-  // Esta função pode ser removida se não for usada em nenhum outro lugar do lado do servidor.
-  // Por enquanto, vamos mantê-la vazia para evitar que seja chamada por engano.
-  try {
-    // await signOut(auth);
-    return { success: true, message: 'Você saiu da sua conta.' };
-  } catch (error: any) {
-    return { success: false, message: error.message };
-  }
-}
-
-export async function updateProfile(uid: string, profileData: any) {
-  try {
-    const barberRef = doc(db, 'barbers', uid);
-    await setDoc(barberRef, { ...profileData, profileComplete: true }, { merge: true });
-    revalidatePath('/dashboard');
-    revalidatePath('/');
-    return { success: true, message: 'Perfil salvo com sucesso!' };
-  } catch (error: any) {
-    return { success: false, message: `Erro ao salvar: ${error.message}` };
-  }
-}
+// A função de updateProfile foi movida para o lado do cliente para garantir o contexto de autenticação.
 
 export async function getBarberProfile(uid: string) {
   try {

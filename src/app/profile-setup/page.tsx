@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { updateProfile, generateBioAction, getBarberProfile } from '@/app/actions';
+import { getBarberProfile } from '@/app/actions';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,13 +82,13 @@ export default function ProfileSetupPage() {
       return;
     }
     setIsGeneratingDesc(true);
-    const result = await generateBioAction(profile.description);
-    if (result.success && result.bio) {
-      setProfile(prev => ({ ...prev, description: result.bio }));
-      toast({ title: 'Sucesso', description: 'Descrição gerada com IA!' });
-    } else {
-      toast({ title: 'Erro', description: result.message, variant: 'destructive' });
-    }
+    // const result = await generateBioAction(profile.description);
+    // if (result.success && result.bio) {
+    //   setProfile(prev => ({ ...prev, description: result.bio }));
+    //   toast({ title: 'Sucesso', description: 'Descrição gerada com IA!' });
+    // } else {
+    //   toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+    // }
     setIsGeneratingDesc(false);
   };
 
@@ -108,16 +111,18 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!user) {
       toast({ title: 'Erro', description: 'Usuário não autenticado. Por favor, faça login novamente.', variant: 'destructive' });
-      setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    const result = await updateProfile(user.uid, profile);
-    if (result.success) {
-      toast({ title: 'Sucesso!', description: result.message });
+    try {
+      const barberRef = doc(db, 'barbers', user.uid);
+      await setDoc(barberRef, { ...profile, profileComplete: true }, { merge: true });
+      toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
       router.push('/dashboard');
-    } else {
-      toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+    } catch (error: any) {
+      console.error("Erro ao salvar o perfil: ", error);
+      toast({ title: 'Erro', description: `Erro ao salvar: ${error.message}`, variant: 'destructive' });
+    } finally {
       setIsLoading(false);
     }
   };
