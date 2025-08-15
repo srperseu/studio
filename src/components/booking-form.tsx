@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -20,7 +21,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const [clientName, setClientName] = useState('');
+  const [clientName, setClientName] = useState(user?.displayName || '');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -42,7 +43,12 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm() || !selectedBarber) return;
+    if (!validateForm() || !selectedBarber || !user) {
+        if (!user) {
+            toast({ title: "Erro", description: "Você precisa estar logado para agendar.", variant: "destructive" });
+        }
+        return;
+    }
     
     setIsLoading(true);
     const result = await createBooking(selectedBarber.id, {
@@ -50,11 +56,11 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
       selectedService,
       selectedDate,
       selectedTime,
-    });
+    }, user.uid);
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
-      setClientName('');
+      // Don't clear clientName if user is logged in
       setSelectedService('');
       setSelectedDate('');
       setSelectedTime('');
@@ -69,15 +75,15 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     <>
       <div className="flex justify-end mb-4">
         {user ? (
-             <Link href="/dashboard">
+             <Link href="/dashboard/client">
                 <Button variant="outline">
-                    Ir para o Painel &rarr;
+                    Meus Agendamentos &rarr;
                 </Button>
             </Link>
         ) : (
             <Link href="/">
                 <Button variant="outline">
-                    Área do Barbeiro &rarr;
+                    Login &rarr;
                 </Button>
             </Link>
         )}

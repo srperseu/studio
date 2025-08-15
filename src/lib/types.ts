@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface ServiceDetail {
@@ -45,6 +46,7 @@ export interface Client {
 export interface Appointment {
   id: string;
   clientName: string;
+  clientUid: string;
   service: string;
   type: 'inShop' | 'atHome';
   date: string;

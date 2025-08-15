@@ -1,3 +1,4 @@
+
 'use server';
 
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -54,13 +55,14 @@ export async function generateReminderAction(appointmentDetails: ReminderDetails
   }
 }
 
-export async function createBooking(barberId: string, bookingData: any) {
+export async function createBooking(barberId: string, bookingData: any, clientUid: string) {
   try {
     const { clientName, selectedService, selectedDate, selectedTime } = bookingData;
     const [serviceName, serviceType] = selectedService.split('|');
 
     await addDoc(collection(db, `barbers/${barberId}/appointments`), {
       clientName,
+      clientUid, // Store the client's UID
       service: serviceName,
       type: serviceType,
       date: selectedDate,
@@ -68,6 +70,7 @@ export async function createBooking(barberId: string, bookingData: any) {
       createdAt: serverTimestamp(),
     });
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/client'); // Revalidate client dashboard too
     return { success: true, message: 'Agendamento realizado com sucesso!' };
   } catch (error: any) {
     return { success: false, message: 'Erro ao realizar o agendamento.' };

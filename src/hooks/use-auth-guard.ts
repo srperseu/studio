@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -41,10 +42,7 @@ export const useAuthGuard = (role: Role = 'any') => {
         const isBarber = barberSnap.exists();
         const isClient = clientSnap.exists();
 
-        // Se não for nem barbeiro nem cliente (ex: Google Sign-In primeira vez)
         if (!isBarber && !isClient) {
-            // Por padrão, pode-se redirecionar para a escolha de perfil ou um setup inicial.
-            // Por enquanto, vamos redirecionar para a escolha de cadastro.
             if (pathname !== '/signup') {
                 router.replace('/signup');
             }
@@ -56,14 +54,18 @@ export const useAuthGuard = (role: Role = 'any') => {
             if (!barberData.profileComplete && pathname !== '/profile-setup') {
                 router.replace('/profile-setup');
             } else if (role === 'client') {
-                router.replace('/dashboard'); // Um barbeiro tentou acessar uma rota de cliente
+                router.replace('/dashboard'); 
+            } else if (barberData.profileComplete && pathname === '/') {
+                router.replace('/dashboard');
             }
         } else if (isClient) {
             const clientData = clientSnap.data() as Client;
             if (!clientData.profileComplete && pathname !== '/profile-setup/client') {
                 router.replace('/profile-setup/client');
             } else if (role === 'barber') {
-                router.replace('/booking'); // Um cliente tentou acessar uma rota de barbeiro
+                router.replace('/dashboard/client'); 
+            } else if (clientData.profileComplete && pathname === '/') {
+                router.replace('/dashboard/client');
             }
         }
     };
