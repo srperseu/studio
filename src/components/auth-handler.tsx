@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { useAuth, AuthProvider } from '@/hooks/use-auth.tsx';
@@ -14,20 +14,25 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    const isAuthRoute = authRoutes.includes(pathname);
+    const isProtectedRoute = protectedRoutes.includes(pathname);
 
     if (!user) {
+      setIsCheckingProfile(false);
       if (isProtectedRoute) {
         router.replace('/login');
       }
       return;
     }
 
+    // User is logged in
     const checkProfile = async () => {
       try {
         const userDocRef = doc(db, 'barbers', user.uid);
@@ -35,13 +40,19 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
         const profileComplete = userDoc.exists() && userDoc.data().profileComplete;
 
         if (isAuthRoute) {
-          router.replace(profileComplete ? '/dashboard' : '/profile-setup');
-        } else if (!profileComplete && pathname !== '/profile-setup') {
-          router.replace('/profile-setup');
+            router.replace(profileComplete ? '/dashboard' : '/profile-setup');
+        } else if (isProtectedRoute) {
+            if (!profileComplete && pathname !== '/profile-setup') {
+                router.replace('/profile-setup');
+            } else if (profileComplete && pathname === '/profile-setup') {
+                router.replace('/dashboard');
+            }
         }
       } catch (error) {
         console.error("Error fetching user document:", error);
-        router.replace('/login');
+        router.replace('/login'); // Fallback on error
+      } finally {
+        setIsCheckingProfile(false);
       }
     };
 
@@ -49,20 +60,7 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
   }, [user, loading, pathname, router]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <Icons.Spinner className="h-8 w-8" />
-          <h1 className="text-2xl font-headline">Carregando a Barbearia Digital...</h1>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!user && protectedRoutes.some(route => pathname.startsWith(route))) {
-    // While not loading, if user is not available and on a protected route, show loader
-    // this avoids flashing the login page
+  if (loading || (protectedRoutes.includes(pathname) && isCheckingProfile)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
@@ -75,7 +73,6 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
-
 
 export function AuthHandler({ children }: { children: React.ReactNode }) {
     return (

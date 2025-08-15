@@ -38,6 +38,8 @@ export default function LoginPage() {
         title: 'Sucesso!',
         description: result.message,
       });
+      // The AuthHandler will now take care of the redirection logic.
+      // We can simply push to a default protected route and let it handle the rest.
       if (result.profileComplete) {
         router.push('/dashboard');
       } else {
