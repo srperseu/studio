@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
+import { useAuth } from '@/hooks/use-auth';
 
 export function BookingForm({ barbers }: { barbers: Barber[] }) {
+  const { user } = useAuth();
   const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -66,11 +68,19 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
   return (
     <>
       <div className="flex justify-end mb-4">
-        <Link href="/login">
-            <Button variant="outline">
-                Área do Barbeiro &rarr;
-            </Button>
-        </Link>
+        {user ? (
+             <Link href="/dashboard">
+                <Button variant="outline">
+                    Ir para o Painel &rarr;
+                </Button>
+            </Link>
+        ) : (
+            <Link href="/">
+                <Button variant="outline">
+                    Área do Barbeiro &rarr;
+                </Button>
+            </Link>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <Card className="bg-card">

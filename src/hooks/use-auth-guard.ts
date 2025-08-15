@@ -14,7 +14,7 @@ export const useAuthGuard = (role: 'barber' | 'client' | 'any' = 'any') => {
     if (loading) return;
 
     if (!user) {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
 
@@ -32,7 +32,7 @@ export const useAuthGuard = (role: 'barber' | 'client' | 'any' = 'any') => {
             const isClient = clientSnap.exists();
 
             if (role === 'barber' && !isBarber) {
-                router.replace('/'); // Not a barber, redirect to home
+                router.replace('/booking'); // Not a barber, redirect to client booking
             } else if (role === 'client' && !isClient) {
                 router.replace('/dashboard'); // Not a client, redirect to barber dash
             }

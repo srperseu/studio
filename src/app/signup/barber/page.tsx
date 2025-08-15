@@ -55,7 +55,7 @@ export default function SignUpBarberPage() {
                 <AlertDescription>
                     Enviamos um link de verificação para <strong>{email}</strong>. Por favor, clique no link para ativar sua conta de barbeiro.
                 </AlertDescription>
-                <Button onClick={() => router.push('/login')} className="w-full mt-6">
+                <Button onClick={() => router.push('/')} className="w-full mt-6">
                     Ir para o Login
                 </Button>
             </CardContent>
@@ -133,7 +133,7 @@ export default function SignUpBarberPage() {
           </form>
           <div className="mt-4 text-center text-sm">
             Já tem uma conta?{" "}
-            <Link href="/login" className="underline">
+            <Link href="/" className="underline">
               Login
             </Link>
           </div>

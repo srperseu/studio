@@ -28,7 +28,7 @@ export default function SignUpPage() {
           </Link>
           <div className="mt-4 text-center text-sm">
             Já tem uma conta?{" "}
-            <Link href="/login" className="underline">
+            <Link href="/" className="underline">
               Login
             </Link>
           </div>

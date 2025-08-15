@@ -27,7 +27,7 @@ export function UserNav() {
     try {
       await signOut();
       toast({ description: 'Você saiu da sua conta.' });
-      router.push('/login');
+      router.push('/');
     } catch (error: any) {
       toast({ description: 'Falha ao sair da conta.', variant: 'destructive' });
     }

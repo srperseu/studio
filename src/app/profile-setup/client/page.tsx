@@ -39,7 +39,7 @@ export default function ProfileSetupClientPage() {
       };
       fetchProfile();
     } else if (!authLoading) {
-        router.push('/login');
+        router.push('/');
     }
   }, [user, authLoading, router]);
 
@@ -58,7 +58,7 @@ export default function ProfileSetupClientPage() {
       const clientRef = doc(db, 'clients', user.uid);
       await setDoc(clientRef, { ...profile, profileComplete: true }, { merge: true });
       toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
-      router.push('/');
+      router.push('/booking');
     } catch (error: any) {
       console.error("Erro ao salvar o perfil do cliente: ", error);
       toast({ title: 'Erro', description: `Erro ao salvar: ${error.message}`, variant: 'destructive' });

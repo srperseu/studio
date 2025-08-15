@@ -73,7 +73,7 @@ export default function ProfileSetupPage() {
       };
       fetchProfile();
     } else if (!authLoading) {
-        router.push('/login');
+        router.push('/');
     }
   }, [user, authLoading, router]);
 
@@ -120,7 +120,7 @@ export default function ProfileSetupPage() {
       await setDoc(barberRef, { ...profile, profileComplete: true }, { merge: true });
       toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: any) => {
       console.error("Erro ao salvar o perfil: ", error);
       toast({ title: 'Erro', description: `Erro ao salvar: ${error.message}`, variant: 'destructive' });
     } finally {
