@@ -59,7 +59,7 @@ export async function createBooking(barberId: string, bookingData: any, clientUi
   try {
     const { clientName, selectedService, selectedDate, selectedTime } = bookingData;
     
-    if (!selectedService || typeof selectedService !== 'string') {
+    if (!selectedService || typeof selectedService !== 'string' || selectedService.trim() === '') {
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
 
