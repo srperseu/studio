@@ -5,9 +5,9 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Icons } from "@/components/icons";
 
 export default function BarberDashboard() {
-  const { isLoading } = useAuthGuard();
+  const { isLoading, user } = useAuthGuard();
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
