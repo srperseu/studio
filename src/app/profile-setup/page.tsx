@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Icons } from '@/components/icons';
 import type { Barber } from '@/lib/types';
+import { Header } from '@/components/header';
 
 const defaultAvailability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -135,9 +136,9 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <Card className="bg-card border-border">
+        <Header title="Configuração do Perfil" showBackButton />
+        <Card className="bg-card border-border mt-8">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold font-headline">Configuração do Perfil</CardTitle>
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>
           </CardHeader>
           <CardContent>

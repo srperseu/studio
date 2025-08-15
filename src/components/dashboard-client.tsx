@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
-import { signOutUser, generateReminderAction } from '@/app/actions';
+import { generateReminderAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -86,16 +86,6 @@ export function DashboardClient() {
     }
   };
 
-  const handleLogout = async () => {
-    const result = await signOutUser();
-    if (result.success) {
-      toast({ description: result.message });
-      router.push('/login');
-    } else {
-      toast({ description: result.message, variant: 'destructive' });
-    }
-  };
-
   if (authLoading || isLoading) {
     return <DashboardSkeleton />;
   }
@@ -119,15 +109,6 @@ export function DashboardClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      <header className="flex flex-col sm:flex-row justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold font-headline">Painel do Barbeiro</h1>
-        <div className="flex items-center gap-4 mt-4 sm:mt-0">
-          <span className="text-muted-foreground hidden md:block">Olá, {barberData.fullName}</span>
-          <Button variant="outline" onClick={() => router.push('/profile-setup')}>Editar Perfil</Button>
-          <Button variant="destructive" onClick={handleLogout}><Icons.LogOut className="mr-2 h-4 w-4" /> Sair</Button>
-        </div>
-      </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -174,8 +155,8 @@ export function DashboardClient() {
               </div>
               <div>
                 <h3 className="font-bold text-primary">Serviços</h3>
-                {barberData.services?.inShop?.active && <p className="text-muted-foreground">Na Barbearia: R$ {barberData.services.inShop.price}</p>}
-                {barberData.services?.atHome?.active && <p className="text-muted-foreground">Em Domicílio: R$ {barberData.services.atHome.price}</p>}
+                {barberData?.services?.inShop?.active && <p className="text-muted-foreground">Na Barbearia: R$ {barberData.services.inShop.price}</p>}
+                {barberData?.services?.atHome?.active && <p className="text-muted-foreground">Em Domicílio: R$ {barberData.services.atHome.price}</p>}
               </div>
               <div>
                 <h3 className="font-bold text-primary">Horários</h3>
@@ -196,14 +177,6 @@ export function DashboardClient() {
 function DashboardSkeleton() {
     return (
         <>
-            <header className="flex flex-col sm:flex-row justify-between items-center mb-8">
-                <Skeleton className="h-9 w-64 bg-card" />
-                <div className="flex items-center gap-4 mt-4 sm:mt-0">
-                    <Skeleton className="h-9 w-48 bg-card" />
-                    <Skeleton className="h-9 w-24 bg-card" />
-                    <Skeleton className="h-9 w-24 bg-card" />
-                </div>
-            </header>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-card rounded-2xl shadow-lg p-6">
                     <Skeleton className="h-8 w-1/2 mb-4 bg-muted" />

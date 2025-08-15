@@ -14,6 +14,7 @@ import {
   Sparkles,
   ChevronLeft,
   Loader2,
+  CircleUserRound,
   type LucideProps
 } from 'lucide-react';
 
@@ -33,4 +34,5 @@ export const Icons = {
   Sparkles: (props: LucideProps) => <Sparkles {...props} />,
   ChevronLeft: (props: LucideProps) => <ChevronLeft {...props} />,
   Spinner: (props: LucideProps) => <Loader2 className="animate-spin" {...props} />,
+  CircleUserRound: (props: LucideProps) => <CircleUserRound {...props} />,
 };

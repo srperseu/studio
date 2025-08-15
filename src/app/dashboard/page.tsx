@@ -3,6 +3,7 @@
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { DashboardClient } from "@/components/dashboard-client";
 import { Icons } from "@/components/icons";
+import { Header } from '@/components/header';
 
 export default function BarberDashboard() {
   const { user, loading } = useAuthGuard();
@@ -21,6 +22,7 @@ export default function BarberDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
+        <Header title="Painel do Barbeiro" />
         <DashboardClient />
       </div>
     </div>
