@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Icons } from '@/components/icons';
 import type { Barber } from '@/lib/types';
-import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const defaultAvailability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -28,7 +27,7 @@ const defaultAvailability = {
 };
 
 export default function ProfileSetupPage() {
-  const { user, loading: authLoading } = useAuthGuard();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,8 +67,10 @@ export default function ProfileSetupPage() {
         setIsPageLoading(false);
       };
       fetchProfile();
+    } else if (!authLoading) {
+        router.push('/login');
     }
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const handleGenerateDescription = async () => {
     if (!profile.description) {
