@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,16 +10,17 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Icons } from '@/components/icons';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<'form' | 'verify'>('form');
   const { signUpWithEmail, loading } = useAuth();
 
   const handleSignup = async (e: FormEvent) => {
@@ -32,13 +32,37 @@ export default function SignUpPage() {
     setError(null);
     try {
       await signUpWithEmail(email, password, fullName, phone);
-      toast({ title: 'Sucesso!', description: 'Cadastro realizado. Redirecionando...' });
-      router.push('/profile-setup');
+      setStep('verify');
     } catch (err: any) {
-      setError('Falha ao criar a conta. Tente novamente.');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Este e-mail já está em uso.');
+      } else {
+        setError('Falha ao criar a conta. Tente novamente.');
+      }
       console.error(err);
     }
   };
+  
+  if (step === 'verify') {
+    return (
+       <div className="flex items-center justify-center min-h-screen bg-gray-100">
+         <Card className="mx-auto max-w-sm text-center">
+            <CardHeader>
+                <CardTitle className="text-2xl">Verifique seu E-mail</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Icons.Mail className="mx-auto h-12 w-12 text-primary mb-4" />
+                <AlertDescription>
+                    Enviamos um link de verificação para <strong>{email}</strong>. Por favor, clique no link para ativar sua conta.
+                </AlertDescription>
+                <Button onClick={() => router.push('/login')} className="w-full mt-6">
+                    Ir para o Login
+                </Button>
+            </CardContent>
+         </Card>
+       </div>
+    )
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

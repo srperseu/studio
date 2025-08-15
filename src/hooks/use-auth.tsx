@@ -14,7 +14,8 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendEmailVerification
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -27,6 +28,7 @@ interface AuthContextType {
   signUpWithEmail: (email: string, password: string, fullName: string, phone: string) => Promise<any>;
   signInWithGoogle: () => Promise<any>;
   signOut: () => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
 }
 
 // Criação do contexto com valores padrão
@@ -37,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   signUpWithEmail: async () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
+  sendVerificationEmail: async () => {},
 });
 
 // Hook customizado para usar o contexto de autenticação
@@ -70,6 +73,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signUpWithEmail = async (email: string, password: string, fullName: string, phone: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+    // Envia o e-mail de verificação
+    await sendEmailVerification(user);
+    // Cria o documento do barbeiro no Firestore
     await setDoc(doc(db, 'barbers', user.uid), {
       uid: user.uid,
       fullName: fullName,
@@ -88,6 +94,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = () => {
     return firebaseSignOut(auth);
   };
+  
+  const sendVerificationEmail = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
+    } else {
+      throw new Error("Nenhum usuário logado para enviar e-mail de verificação.");
+    }
+  };
 
   const value: AuthContextType = {
     user,
@@ -96,6 +110,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signUpWithEmail,
     signInWithGoogle,
     signOut,
+    sendVerificationEmail,
   };
 
   return (

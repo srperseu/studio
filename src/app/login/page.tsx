@@ -9,49 +9,77 @@ import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Icons } from '@/components/icons';
 
 
 export default function LoginPage() {
-  // Obtém o usuário, o estado de carregamento e as funções do hook de autenticação
-  const { user, loading, signInWithEmail, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithEmail, signInWithGoogle, sendVerificationEmail } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showVerificationLink, setShowVerificationLink] = useState(false);
 
-  // Efeito que redireciona o usuário se ele já estiver logado
   useEffect(() => {
-    // A condição !loading garante que o redirecionamento só ocorra
-    // após a verificação inicial do estado de autenticação.
     if (!loading && user) {
-      router.push('/dashboard');
+      if (!user.emailVerified) {
+        setShowVerificationLink(true);
+        setError("Por favor, verifique seu e-mail antes de continuar.");
+      } else {
+        router.push('/dashboard');
+      }
     }
   }, [user, loading, router]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setShowVerificationLink(false);
     try {
-      await signInWithEmail(email, password);
-      // O redirecionamento agora é tratado pelo useEffect.
-      // A linha router.push('/dashboard') foi removida daqui.
+      const userCredential = await signInWithEmail(email, password);
+      if (userCredential.user && !userCredential.user.emailVerified) {
+        setShowVerificationLink(true);
+        setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
+      }
+      // O useEffect cuidará do redirecionamento
     } catch (err: any) {
-      setError('Falha ao fazer login. Verifique suas credenciais.');
-      console.error(err);
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+        } else {
+            setError('Falha ao fazer login. Tente novamente mais tarde.');
+        }
+        console.error(err);
     }
   };
+  
+  const handleResendVerification = async () => {
+    if (!user) {
+        toast({ title: 'Erro', description: 'Você precisa estar logado para reenviar o e-mail.', variant: 'destructive'});
+        return;
+    }
+    try {
+        await sendVerificationEmail();
+        toast({ title: 'Sucesso', description: 'E-mail de verificação reenviado!'});
+        setShowVerificationLink(false);
+        setError("Um novo e-mail foi enviado. Verifique sua caixa de entrada.");
+    } catch (error) {
+        toast({ title: 'Erro', description: 'Não foi possível reenviar o e-mail. Tente novamente mais tarde.', variant: 'destructive'});
+    }
+  }
 
   const handleGoogleSignIn = async () => {
     try {
         await signInWithGoogle();
-        // O redirecionamento também será tratado pelo useEffect.
+        // O redirecionamento será tratado pelo useEffect.
     } catch (err: any) {
         setError('Falha ao fazer login com o Google.');
         console.error(err);
     }
   };
 
-  // Exibe um estado de carregamento enquanto o status de autenticação é verificado
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Carregando...</div>;
   }
@@ -66,33 +94,40 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showVerificationLink && (
+             <Alert variant="destructive" className="mb-4">
+               <Icons.Mail className="h-4 w-4" />
+               <AlertTitle>Verificação Necessária</AlertTitle>
+               <AlertDescription>
+                 Seu e-mail não foi verificado. 
+                 <button onClick={handleResendVerification} className="underline font-bold ml-1">Reenviar e-mail</button>
+               </AlertDescription>
+             </Alert>
+          )}
+          {error && !showVerificationLink && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="m@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                />
-              </div>
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="m@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <div className="flex items-center">
-              </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+              <Input 
+                id="password" 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full">
               Login
             </Button>
@@ -109,7 +144,6 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="text-center mt-6 space-y-2">
-
             <p>
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
                 Ver como cliente
