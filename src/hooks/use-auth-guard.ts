@@ -18,6 +18,11 @@ export const useAuthGuard = (role: Role = 'any') => {
   useEffect(() => {
     if (loading) return;
 
+    // Allow access to profile setup pages without interference
+    if (pathname === '/profile-setup' || pathname === '/profile-setup/client') {
+        return;
+    }
+    
     if (!user) {
       router.replace('/');
       return;
@@ -65,7 +70,7 @@ export const useAuthGuard = (role: Role = 'any') => {
             }
         } else if (isClient) {
             const clientData = clientSnap.data() as Client;
-            if (!clientData.profileComplete && pathname !== '/profile-setup/client') {
+             if (!clientData.profileComplete && pathname !== '/profile-setup/client') {
                 // Force client to setup profile if not complete.
                 router.replace('/profile-setup/client');
             } else if (role === 'barber') {
