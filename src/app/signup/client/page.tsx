@@ -27,11 +27,17 @@ export default function SignUpClientPage() {
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (password !== confirmPassword) {
       setError("As senhas não coincidem.");
       return;
     }
-    setError(null);
+     if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await signUpClientWithEmail(email, password, fullName, phone);
