@@ -97,8 +97,8 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <p className="text-muted-foreground mb-4">{selectedBarber.description}</p>
               <div className="border-t border-border pt-4">
                 <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
-                {selectedBarber.services.inShop.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {selectedBarber.services.inShop.price}</p>}
-                {selectedBarber.services.atHome.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {selectedBarber.services.atHome.price}</p>}
+                {selectedBarber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {selectedBarber.services.inShop.price}</p>}
+                {selectedBarber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {selectedBarber.services.atHome.price}</p>}
               </div>
             </CardContent>
           )}
@@ -124,8 +124,8 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="" disabled>Selecione um serviço</SelectItem>
-                            {selectedBarber.services.inShop.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
-                            {selectedBarber.services.atHome.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
+                            {selectedBarber.services?.inShop?.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
+                            {selectedBarber.services?.atHome?.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
                         </SelectContent>
                     </Select>
                     {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
