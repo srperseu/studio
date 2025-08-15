@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { getDay, parseISO } from 'date-fns';
 
 import type { Barber, Client } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,21 +18,32 @@ import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
 import { useAuth } from '@/hooks/use-auth';
 
+const dayOfWeekMap = [
+  'Domingo',
+  'Segunda',
+  'Terça',
+  'Quarta',
+  'Quinta',
+  'Sexta',
+  'Sábado'
+];
+
 export function BookingForm({ barbers }: { barbers: Barber[] }) {
   const { user } = useAuth();
-  const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const [clientName, setClientName] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const [timeSlot, setTimeSlot] = useState<{min: string, max: string, disabled: boolean, error?: string}>({min: '00:00', max: '23:59', disabled: true});
 
   useEffect(() => {
-    // Reliably fetch the client's full name from their Firestore profile,
-    // as user.displayName can be ambiguous if the user is also a barber.
     async function fetchClientProfile() {
       if (user) {
         const clientRef = doc(db, 'clients', user.uid);
@@ -40,7 +52,6 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
           const clientData = docSnap.data() as Client;
           setClientName(clientData.fullName);
         } else {
-            // Fallback to display name if client profile doesn't exist for some reason
             setClientName(user.displayName || '');
         }
       }
@@ -52,12 +63,43 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     return barbers.find(b => b.id === selectedBarberId);
   }, [barbers, selectedBarberId]);
 
+  useEffect(() => {
+    if (selectedDate && selectedBarber?.availability) {
+      // The `parseISO` is crucial because the date from input is 'YYYY-MM-DD'
+      const dayOfWeekIndex = getDay(parseISO(selectedDate));
+      const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
+      const availabilityForDay = selectedBarber.availability[dayOfWeekName];
+
+      if (availabilityForDay && availabilityForDay.active) {
+        setTimeSlot({ 
+            min: availabilityForDay.start, 
+            max: availabilityForDay.end, 
+            disabled: false,
+            error: undefined
+        });
+      } else {
+        setTimeSlot({ 
+            min: '00:00', 
+            max: '23:59', 
+            disabled: true,
+            error: `O barbeiro não atende neste dia.`
+        });
+        setSelectedTime(''); // Reset time if day is unavailable
+      }
+    } else {
+      setTimeSlot({ min: '00:00', max: '23:59', disabled: true, error: 'Selecione uma data para ver os horários.' });
+    }
+  }, [selectedDate, selectedBarber]);
+
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!clientName) newErrors.clientName = 'Seu nome é obrigatório';
+    if (!clientName.trim()) newErrors.clientName = 'Seu nome é obrigatório';
     if (!selectedService) newErrors.selectedService = 'Selecione um serviço';
     if (!selectedDate) newErrors.selectedDate = 'Selecione uma data';
     if (!selectedTime) newErrors.selectedTime = 'Selecione um horário';
+    if (timeSlot.disabled) newErrors.selectedTime = 'Horário ou dia inválido';
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,7 +127,6 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
-      // Don't clear clientName if user is logged in
       setSelectedService('');
       setSelectedDate('');
       setSelectedTime('');
@@ -96,6 +137,14 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     setIsLoading(false);
   };
   
+  const getTodayString = () => {
+    const today = new Date();
+    // Adjust for timezone offset to get the correct local date
+    const offset = today.getTimezoneOffset();
+    const todayWithOffset = new Date(today.getTime() - (offset * 60 * 1000));
+    return todayWithOffset.toISOString().split('T')[0];
+  };
+
   return (
     <>
       <div className="flex justify-end mb-4">
@@ -154,7 +203,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
               <form onSubmit={onSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required/>
+                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required readOnly={!!user}/>
                   {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
                 <div>
@@ -173,13 +222,14 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
-                    <Input type="date" id="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mt-1" />
+                    <Input type="date" id="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mt-1" min={getTodayString()} />
                     {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
                   </div>
                   <div>
                     <label htmlFor="time" className="block text-sm font-medium text-muted-foreground">Horário</label>
-                    <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="mt-1" />
+                    <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="mt-1" disabled={timeSlot.disabled} min={timeSlot.min} max={timeSlot.max} />
                     {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime}</p>}
+                    {timeSlot.error && <p className="text-destructive text-xs mt-1">{timeSlot.error}</p>}
                   </div>
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
