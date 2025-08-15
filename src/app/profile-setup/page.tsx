@@ -105,7 +105,11 @@ export default function ProfileSetupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast({ title: 'Erro', description: 'Usuário não autenticado. Por favor, faça login novamente.', variant: 'destructive' });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const result = await updateProfile(user.uid, profile);
     if (result.success) {
