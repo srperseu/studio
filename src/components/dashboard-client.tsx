@@ -82,27 +82,22 @@ export function DashboardClient() {
     const pastList: Appointment[] = [];
 
     appointments.forEach(app => {
-        const appDateTime = new Date(`${app.date}T${app.time}`);
-        // Se o status é 'scheduled' E a data/hora é no futuro, é um próximo agendamento
-        if (app.status === 'scheduled' && appDateTime >= now) {
-            scheduledList.push(app);
-        } else {
-            // Todo o resto é considerado passado (completed, cancelled, no-show, ou scheduled que já passou)
-            pastList.push(app);
-        }
+      const appDateTime = new Date(`${app.date}T${app.time}`);
+      if (app.status === 'scheduled' && appDateTime >= now) {
+        scheduledList.push(app);
+      } else {
+        pastList.push(app);
+      }
     });
 
-    // Ordena os próximos agendamentos do mais próximo para o mais distante
     scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-    // Ordena o histórico do mais recente para o mais antigo
-    pastList.sort((a,b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
-    
+    pastList.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+
     return { scheduledAppointments: scheduledList, pastAppointments: pastList };
   }, [appointments]);
 
   const pendingAppointments = useMemo(() => {
     const now = new Date();
-    // Pendentes são agendamentos PASSADOS que ainda estão com status 'scheduled'
     return pastAppointments
       .filter(app => app.status === 'scheduled' && new Date(`${app.date}T${app.time}`) < now)
       .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
