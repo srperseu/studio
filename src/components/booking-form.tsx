@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
+import { UserNav } from './user-nav';
 
 const dayOfWeekMap = [
   'Domingo',
@@ -157,13 +158,16 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end items-center gap-4 mb-4">
         {user ? (
-             <Link href="/dashboard/client">
-                <Button variant="outline">
-                    Meus Agendamentos &rarr;
-                </Button>
-            </Link>
+            <>
+                <Link href="/dashboard/client">
+                    <Button variant="outline">
+                        Meus Agendamentos &rarr;
+                    </Button>
+                </Link>
+                <UserNav />
+            </>
         ) : (
             <Link href="/">
                 <Button variant="outline">
