@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +16,7 @@ import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface AppointmentWithBarber extends Appointment {
   barber: Barber | null;
@@ -36,6 +36,10 @@ export function ClientDashboard() {
   const [pastAppointments, setPastAppointments] = useState<AppointmentWithBarber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  
+  const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
+
 
   const fetchAppointments = async () => {
     if (user) {
@@ -47,7 +51,9 @@ export function ClientDashboard() {
         for (const barber of allBarbers) {
           const appointmentsQuery = query(
             collection(db, 'barbers', barber.id, 'appointments'),
-            where('clientUid', '==', user.uid)
+            where('clientUid', '==', user.uid),
+            orderBy('date', 'desc'),
+            orderBy('time', 'desc')
           );
 
           const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -60,8 +66,6 @@ export function ClientDashboard() {
           });
         }
         
-        allAppointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -69,7 +73,7 @@ export function ClientDashboard() {
         const past: AppointmentWithBarber[] = [];
 
         allAppointments.forEach(app => {
-          const appDate = new Date(app.date + 'T12:00:00Z');
+          const appDate = new Date(app.date + 'T00:00:00'); // Use T00 to avoid timezone issues with date compare
           if (app.status === 'cancelled' || appDate < today) {
             past.push(app);
           } else {
@@ -77,7 +81,7 @@ export function ClientDashboard() {
           }
         });
 
-        setScheduledAppointments(scheduled);
+        setScheduledAppointments(scheduled.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)));
         setPastAppointments(past);
 
       } catch (error) {
@@ -92,6 +96,28 @@ export function ClientDashboard() {
   useEffect(() => {
     fetchAppointments();
   }, [user]);
+
+  const filteredScheduled = useMemo(() => {
+    return scheduledAppointments.filter(app => {
+        if (scheduledFilter === 'all') return true;
+        return app.type === scheduledFilter;
+    });
+  }, [scheduledAppointments, scheduledFilter]);
+
+  const filteredHistory = useMemo(() => {
+    return pastAppointments.filter(app => {
+        if (historyFilter === 'all') return true;
+        if (historyFilter === 'cancelled') return app.status === 'cancelled';
+        if (historyFilter === 'completed') {
+            const appDate = new Date(app.date + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return app.status !== 'cancelled' && appDate < today;
+        }
+        return false;
+    });
+  }, [pastAppointments, historyFilter]);
+
 
   const handleCancelAppointment = async (appointment: AppointmentWithBarber) => {
     if (!appointment.barber) return;
@@ -108,7 +134,7 @@ export function ClientDashboard() {
 
   const AppointmentCard = ({ app }: { app: AppointmentWithBarber}) => {
     const isCancelled = app.status === 'cancelled';
-    const isPast = new Date(app.date + 'T12:00:00Z') < new Date(new Date().setHours(0, 0, 0, 0));
+    const isPast = new Date(app.date + 'T00:00:00') < new Date(new Date().setHours(0, 0, 0, 0));
     const isActionable = !isCancelled && !isPast;
 
     return (
@@ -204,12 +230,19 @@ export function ClientDashboard() {
             <div className="space-y-10">
                 <div>
                     <h2 className="text-2xl font-headline font-semibold mb-4">Próximos Agendamentos</h2>
-                    {scheduledAppointments.length > 0 ? (
+                    <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsTrigger value="all">Todos</TabsTrigger>
+                            <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                            <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    {filteredScheduled.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {scheduledAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground">Nenhum próximo agendamento encontrado.</p>
+                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
                     )}
                 </div>
                 
@@ -217,8 +250,19 @@ export function ClientDashboard() {
                     <div>
                         <Separator className="my-8" />
                         <h2 className="text-2xl font-headline font-semibold mb-4">Histórico de Agendamentos</h2>
+                        <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)}>
+                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                                <TabsTrigger value="all">Todos</TabsTrigger>
+                                <TabsTrigger value="completed">Realizados</TabsTrigger>
+                                <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {pastAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                            {filteredHistory.length > 0 ? (
+                                filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)
+                            ): (
+                                <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                            )}
                         </div>
                     </div>
                 )}

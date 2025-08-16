@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
@@ -20,6 +19,7 @@ import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 
 export function DashboardClient() {
@@ -35,6 +35,9 @@ export function DashboardClient() {
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
+  const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
+
   const fetchData = async () => {
     if (user) {
         setIsLoading(true);
@@ -45,7 +48,7 @@ export function DashboardClient() {
             setBarberData({ id: barberSnap.id, ...barberSnap.data() } as Barber);
           }
 
-          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'desc'));
+          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'desc'), orderBy('time', 'desc'));
           const appointmentsSnapshot = await getDocs(q);
           const allAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => allAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
@@ -57,7 +60,7 @@ export function DashboardClient() {
           const past: Appointment[] = [];
 
           allAppointments.forEach(app => {
-              const appDate = new Date(app.date + 'T12:00:00Z');
+              const appDate = new Date(app.date + 'T00:00:00'); // Use T00 to avoid timezone issues with date compare
               if (app.status === 'cancelled' || appDate < today) {
                   past.push(app);
               } else {
@@ -65,7 +68,7 @@ export function DashboardClient() {
               }
           });
           
-          setScheduledAppointments(scheduled);
+          setScheduledAppointments(scheduled.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)));
           setPastAppointments(past);
 
         } catch (error) {
@@ -80,6 +83,28 @@ export function DashboardClient() {
   useEffect(() => {
     fetchData();
   }, [user, toast]);
+  
+  const filteredScheduled = useMemo(() => {
+    return scheduledAppointments.filter(app => {
+        if (scheduledFilter === 'all') return true;
+        return app.type === scheduledFilter;
+    });
+  }, [scheduledAppointments, scheduledFilter]);
+
+  const filteredHistory = useMemo(() => {
+    return pastAppointments.filter(app => {
+        if (historyFilter === 'all') return true;
+        if (historyFilter === 'cancelled') return app.status === 'cancelled';
+        if (historyFilter === 'completed') {
+            const appDate = new Date(app.date + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return app.status !== 'cancelled' && appDate < today;
+        }
+        return false;
+    });
+  }, [pastAppointments, historyFilter]);
+
 
   const handleGenerateReminder = async (appointment: Appointment) => {
     if (!barberData) return;
@@ -129,7 +154,7 @@ export function DashboardClient() {
   
   const AppointmentCard = ({ app }: { app: Appointment}) => {
       const isCancelled = app.status === 'cancelled';
-      const isPast = new Date(app.date + 'T12:00:00Z') < new Date(new Date().setHours(0, 0, 0, 0));
+      const isPast = new Date(app.date + 'T00:00:00') < new Date(new Date().setHours(0, 0, 0, 0));
       const isActionable = !isCancelled && !isPast;
       
       return (
@@ -214,12 +239,19 @@ export function DashboardClient() {
               <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
             </CardHeader>
             <CardContent>
-              {scheduledAppointments.length > 0 ? (
+                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <TabsTrigger value="all">Todos</TabsTrigger>
+                        <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                        <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+              {filteredScheduled.length > 0 ? (
                 <div className="space-y-4">
-                  {scheduledAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                  {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
+                <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
               )}
             </CardContent>
           </Card>
@@ -230,8 +262,19 @@ export function DashboardClient() {
                   <CardTitle className="flex items-center gap-2"><Icons.Calendar /> Histórico</CardTitle>
                 </CardHeader>
                 <CardContent>
+                     <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)}>
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsTrigger value="all">Todos</TabsTrigger>
+                            <TabsTrigger value="completed">Realizados</TabsTrigger>
+                            <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                     <div className="space-y-4">
-                     {pastAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                        {filteredHistory.length > 0 ? (
+                            filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)
+                        ) : (
+                           <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                        )}
                     </div>
                 </CardContent>
              </Card>
