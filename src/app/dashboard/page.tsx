@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuthGuard } from '@/hooks/use-auth-guard';
@@ -6,9 +7,9 @@ import { Icons } from "@/components/icons";
 import { Header } from '@/components/header';
 
 export default function BarberDashboard() {
-  const { user, loading } = useAuthGuard('barber');
+  const { user, loading, status } = useAuthGuard('barber');
 
-  if (loading || !user) {
+  if (loading || status !== 'valid') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
@@ -23,7 +24,9 @@ export default function BarberDashboard() {
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         <Header title="Painel do Barbeiro" />
-        <DashboardClient />
+        <div className="mt-8">
+          <DashboardClient />
+        </div>
       </div>
     </div>
   );
