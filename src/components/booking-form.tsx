@@ -119,25 +119,40 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     
     setIsLoading(true);
 
-    const result = await createBooking(
-        selectedBarber.id,
-        user.uid,
-        clientName,
-        selectedService,
-        format(selectedDate, 'yyyy-MM-dd'),
-        selectedTime
-    );
+    try {
+        const result = await createBooking(
+            selectedBarber.id,
+            user.uid,
+            clientName,
+            selectedService,
+            format(selectedDate, 'yyyy-MM-dd'),
+            selectedTime
+        );
 
-    if (result.success) {
-      toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
-      setSelectedService('');
-      setSelectedDate(undefined);
-      setSelectedTime('');
-      setErrors({});
-    } else {
-      toast({ title: "Erro", description: result.message, variant: "destructive" });
+        if (result.success) {
+          toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
+          setSelectedService('');
+          setSelectedDate(undefined);
+          setSelectedTime('');
+          setErrors({});
+        } else {
+          console.error("Booking failed with message:", result.message);
+          toast({ 
+              title: "Erro ao Agendar", 
+              description: `Falha: ${result.message || 'Ocorreu um erro desconhecido.'}`, 
+              variant: "destructive" 
+          });
+        }
+    } catch (error: any) {
+        console.error("Booking failed with exception:", error);
+        toast({
+            title: "Erro Crítico",
+            description: `Ocorreu uma exceção: ${error.message}`,
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (

@@ -88,8 +88,9 @@ export async function createBooking(
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
     return { success: true, message: 'Agendamento realizado com sucesso!' };
   } catch (error: any) {
-    console.error("Error creating appointment: ", error);
-    return { success: false, message: 'Erro ao realizar o agendamento.' };
+    console.error("Erro detalhado ao criar agendamento:", error);
+    return { success: false, message: `Erro ao realizar o agendamento: ${error.message} (Código: ${error.code})` };
   }
 }
+
 
