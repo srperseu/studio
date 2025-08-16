@@ -1,37 +1,42 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
     // --- FUNÇÕES AUXILIARES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      // Leitura pública de perfis completos
       allow read: if resource.data.profileComplete == true || isOwner(barberId);
-      // Barbeiro só pode gerenciar o próprio perfil
       allow create, update: if isOwner(barberId);
       allow delete: if false;
 
       // REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS)
       match /appointments/{appointmentId} {
         // Um cliente só pode criar um agendamento para si mesmo.
-        allow create: if request.auth.uid == request.resource.data.clientUid;
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.clientUid;
         
-        // Apenas o barbeiro pode atualizar ou deletar um agendamento.
+        // Apenas o barbeiro pode atualizar ou deletar.
         allow update, delete: if isOwner(barberId);
         
-        // Um barbeiro pode ler todos os seus agendamentos, e um cliente pode ler os agendamentos que ele mesmo criou.
-        // Esta regra é a que permite a consulta collectionGroup no dashboard do cliente.
-        allow read: if isOwner(barberId) || request.auth.uid == resource.data.clientUid;
+        // Leitura de um único documento: permitido para o barbeiro ou o cliente do agendamento.
+        allow get: if isOwner(barberId) || (isSignedIn() && request.auth.uid == resource.data.clientUid);
+        
+        // Leitura de lista (queries): Permitido se a consulta filtrar por clientUid.
+        // Isso resolve o problema do collectionGroup no dashboard do cliente.
+        allow list: if isSignedIn() && request.query.get('where')[0][0] == 'clientUid' && request.query.get('where')[0][2] == request.auth.uid;
       }
     }
 
     // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-        // Um cliente só pode gerenciar seus próprios dados.
         allow read, create, update: if isOwner(clientId);
         allow delete: if false;
     }
