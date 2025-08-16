@@ -1,37 +1,37 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // Barbers can be read by anyone to allow booking.
+    // Only the barber can write to their own profile.
     match /barbers/{barberId} {
-      // Qualquer um pode ler o perfil de um barbeiro se estiver completo
-      allow read: if resource.data.profileComplete == true || isOwner(barberId);
-      // Apenas o barbeiro dono do perfil pode escrever nele
+      allow read: if true;
       allow write: if isOwner(barberId);
 
-      // Subcoleção de agendamentos
+      // Appointments subcollection
       match /appointments/{appointmentId} {
-        // GET: Um barbeiro pode ler um agendamento da sua agenda.
-        // GET: Um cliente pode ler um agendamento que ele mesmo fez.
-        allow get: if isOwner(barberId) || isOwner(get(/databases/$(database)/documents/barbers/$(barberId)/appointments/$(appointmentId)).data.clientUid);
+        // A client can create an appointment for themselves.
+        allow create: if request.auth.uid == request.resource.data.clientUid;
         
-        // LIST: Um cliente pode listar os agendamentos ONDE o clientUid é o seu.
-        // Esta regra é a chave para a consulta collectionGroup funcionar.
-        allow list: if request.auth.uid == request.query.get('where')[0][2];
-        
-        // CREATE: Um cliente pode criar um agendamento para si mesmo.
-        allow create: if isOwner(request.resource.data.clientUid);
-
-        // UPDATE, DELETE: Apenas o barbeiro pode alterar/deletar.
-        allow update, delete: if isOwner(barberId);
+        // The barber can manage their entire schedule.
+        // A client can read or delete their own appointment.
+        allow read, update, delete: if isOwner(barberId) || isOwner(resource.data.clientUid);
       }
     }
+    
+    // This rule allows the client dashboard to query the 'appointments' collection
+    // group to find all appointments for the currently logged-in user.
+    match /{path=**}/appointments/{appointmentId} {
+        allow list: if request.auth != null && request.query.where.size() > 0 && request.query.where[0].field == 'clientUid' && request.query.where[0].value == request.auth.uid;
+    }
 
+    // A client can only manage their own data.
     match /clients/{clientId} {
-      // Um cliente só pode ler e escrever no seu próprio perfil.
       allow read, write: if isOwner(clientId);
     }
   }
