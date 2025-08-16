@@ -78,26 +78,25 @@ export function DashboardClient() {
 
   const { pendingAppointments, scheduledAppointments, pastAppointments } = useMemo(() => {
     const now = new Date();
-    const pending: Appointment[] = [];
-    const scheduled: Appointment[] = [];
-    const past: Appointment[] = [];
+    const pendingList: Appointment[] = [];
+    const scheduledList: Appointment[] = [];
+    const pastList: Appointment[] = [];
 
     appointments.forEach(app => {
         const appDateTime = new Date(`${app.date}T${app.time}`);
-        if (app.status === 'scheduled' && appDateTime >= now) {
-            scheduled.push(app);
+        if (app.status === 'scheduled' && appDateTime < now) {
+            pendingList.push(app)
+        } else if (app.status === 'scheduled' && appDateTime >= now) {
+            scheduledList.push(app);
         } else {
-            past.push(app);
-            if (app.status === 'scheduled' && appDateTime < now) {
-                pending.push(app)
-            }
+            pastList.push(app);
         }
     });
 
-    pending.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${a.time}`).getTime());
-    scheduled.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    pendingList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${a.time}`).getTime());
+    scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     
-    return { pendingAppointments, scheduledAppointments, pastAppointments };
+    return { pendingAppointments: pendingList, scheduledAppointments: scheduledList, pastAppointments: pastList };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
@@ -445,3 +444,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
