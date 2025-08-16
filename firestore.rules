@@ -2,37 +2,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Barbers can be read by anyone to allow booking.
-    // Only the barber can write to their own profile.
+    // Barbers: Publicly readable, but only the owner can write.
     match /barbers/{barberId} {
       allow read: if true;
       allow write: if isOwner(barberId);
 
-      // Appointments subcollection
+      // Appointments: Only the barber can manage their own schedule.
+      // The client who owns the appointment can also read it.
       match /appointments/{appointmentId} {
-        // A client can create an appointment for themselves.
-        allow create: if request.auth.uid == request.resource.data.clientUid;
-        
-        // The barber can manage their entire schedule.
-        // A client can read or delete their own appointment.
-        allow read, update, delete: if isOwner(barberId) || isOwner(resource.data.clientUid);
+        allow get: if isOwner(barberId) || isOwner(resource.data.clientUid);
+        allow list: if isOwner(barberId); // Barber can list all their appointments
+        allow create: if isOwner(request.resource.data.clientUid); // A user can only create an appointment for themselves
+        allow update, delete: if isOwner(barberId); // Only the barber can modify appointments
       }
     }
-    
-    // This rule allows the client dashboard to query the 'appointments' collection
-    // group to find all appointments for the currently logged-in user.
-    match /{path=**}/appointments/{appointmentId} {
-        allow list: if request.auth != null && request.query.where.size() > 0 && request.query.where[0].field == 'clientUid' && request.query.where[0].value == request.auth.uid;
-    }
 
-    // A client can only manage their own data.
+    // Clients: Only the owner can read or write their own data.
     match /clients/{clientId} {
       allow read, write: if isOwner(clientId);
+    }
+    
+    // This rule is specifically for the client's dashboard `collectionGroup` query.
+    // It allows a user to query the 'appointments' collection group
+    // IF AND ONLY IF the query includes a `where("clientUid", "==", userId)` clause.
+    match /{path=**}/appointments/{appointmentId} {
+      allow list: if request.auth != null && request.query.get("clientUid") == request.auth.uid;
     }
   }
 }

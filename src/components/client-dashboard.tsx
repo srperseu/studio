@@ -27,8 +27,7 @@ export function ClientDashboard() {
       const fetchAppointments = async () => {
         setIsLoading(true);
         try {
-          // This query is the source of the permission error with the previous rules.
-          // It requires a rule that can be evaluated on a collection group.
+          // This query requires a specific collectionGroup rule in firestore.rules
           const appointmentsQuery = query(
             collectionGroup(db, 'appointments'),
             where('clientUid', '==', user.uid),
@@ -38,10 +37,9 @@ export function ClientDashboard() {
           const querySnapshot = await getDocs(appointmentsQuery);
           const appointmentsData: AppointmentWithBarber[] = [];
           
-          for (const appointmentDoc of querySnapshot.docs) {
+          // Use Promise.all to fetch barber data in parallel for better performance
+          const barberPromises = querySnapshot.docs.map(async (appointmentDoc) => {
             const appointment = { id: appointmentDoc.id, ...appointmentDoc.data() } as Appointment;
-            
-            // The path is barbers/{barberId}/appointments/{appointmentId}
             const barberId = appointmentDoc.ref.parent.parent?.id;
             let barberData: Barber | null = null;
             
@@ -52,11 +50,12 @@ export function ClientDashboard() {
                     barberData = { id: barberSnap.id, ...barberSnap.data() } as Barber;
                 }
             }
-            
-            appointmentsData.push({ ...appointment, barber: barberData });
-          }
+            return { ...appointment, barber: barberData };
+          });
 
-          setAppointments(appointmentsData);
+          const resolvedAppointments = await Promise.all(barberPromises);
+          setAppointments(resolvedAppointments);
+
         } catch (error) {
           console.error("Error fetching client appointments: ", error);
         } finally {
