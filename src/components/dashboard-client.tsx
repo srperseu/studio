@@ -80,14 +80,12 @@ export function DashboardClient() {
     const scheduledList: Appointment[] = [];
     const pastList: Appointment[] = [];
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
 
     appointments.forEach(app => {
-      const appDate = new Date(app.date);
-      appDate.setHours(0,0,0,0);
+      const appDateTimestamp = new Date(app.date).setHours(0, 0, 0, 0);
       
-      if (app.status === 'scheduled' && appDate >= today) {
+      if (app.status === 'scheduled' && appDateTimestamp >= todayTimestamp) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -101,13 +99,11 @@ export function DashboardClient() {
   }, [appointments]);
 
   const pendingAppointments = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
     return pastAppointments
       .filter(app => {
-        const appDate = new Date(app.date);
-        appDate.setHours(0,0,0,0);
-        return app.status === 'scheduled' && appDate < today;
+        const appDateTimestamp = new Date(app.date).setHours(0,0,0,0);
+        return app.status === 'scheduled' && appDateTimestamp < todayTimestamp;
       })
       .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
   }, [pastAppointments]);
@@ -303,40 +299,32 @@ export function DashboardClient() {
               <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                    <TabsTrigger value="all">Todos</TabsTrigger>
-                    <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                    <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
-                </TabsList>
-                 <TabsContent value="all">
-                    {filteredScheduled.length > 0 ? (
-                        <div className="space-y-4">
-                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
-                    )}
-                </TabsContent>
-                <TabsContent value="inShop">
-                      {filteredScheduled.length > 0 ? (
-                        <div className="space-y-4">
-                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
-                    )}
-                </TabsContent>
+              {scheduledAppointments.length > 0 ? (
+                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-4">
+                      <TabsTrigger value="all">Todos</TabsTrigger>
+                      <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                      <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="all">
+                      <div className="space-y-4">
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                      </div>
+                  </TabsContent>
+                  <TabsContent value="inShop">
+                      <div className="space-y-4">
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                      </div>
+                  </TabsContent>
                   <TabsContent value="atHome">
-                      {filteredScheduled.length > 0 ? (
-                        <div className="space-y-4">
-                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
-                    )}
-                </TabsContent>
-              </Tabs>
+                      <div className="space-y-4">
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                      </div>
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
+              )}
             </CardContent>
           </Card>
           
@@ -345,60 +333,44 @@ export function DashboardClient() {
                 <CardTitle className="flex items-center gap-2"><Icons.Calendar /> Histórico</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5 mb-4">
-                      <TabsTrigger value="all">Todos</TabsTrigger>
-                      <TabsTrigger value="completed">Realizados</TabsTrigger>
-                      <TabsTrigger value="scheduled">Pendentes</TabsTrigger>
-                      <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
-                      <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="all">
-                      {filteredHistory.length > 0 ? (
+                {pastAppointments.length > 0 ? (
+                  <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-5 mb-4">
+                        <TabsTrigger value="all">Todos</TabsTrigger>
+                        <TabsTrigger value="completed">Realizados</TabsTrigger>
+                        <TabsTrigger value="scheduled">Pendentes</TabsTrigger>
+                        <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
+                        <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="all">
+                        <div className="space-y-4">
+                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="scheduled">
                           <div className="space-y-4">
                               {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                           </div>
-                      ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico.</p>
-                      )}
-                  </TabsContent>
-                   <TabsContent value="scheduled">
-                        {filteredHistory.length > 0 ? (
+                    </TabsContent>
+                    <TabsContent value="completed">
                           <div className="space-y-4">
                               {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                           </div>
-                      ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                      )}
-                  </TabsContent>
-                  <TabsContent value="completed">
-                        {filteredHistory.length > 0 ? (
+                    </TabsContent>
+                    <TabsContent value="cancelled">
                           <div className="space-y-4">
                               {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                           </div>
-                      ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                      )}
-                  </TabsContent>
-                  <TabsContent value="cancelled">
-                        {filteredHistory.length > 0 ? (
+                    </TabsContent>
+                    <TabsContent value="no-show">
                           <div className="space-y-4">
                               {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                           </div>
-                      ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                      )}
-                  </TabsContent>
-                  <TabsContent value="no-show">
-                        {filteredHistory.length > 0 ? (
-                          <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
-                          </div>
-                      ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                      )}
-                  </TabsContent>
-                </Tabs>
+                    </TabsContent>
+                  </Tabs>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico.</p>
+                )}
               </CardContent>
            </Card>
 
@@ -467,5 +439,7 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
 
     

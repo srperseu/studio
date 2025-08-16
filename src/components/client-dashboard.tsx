@@ -92,14 +92,12 @@ export function ClientDashboard() {
     const scheduledList: AppointmentWithBarber[] = [];
     const pastList: AppointmentWithBarber[] = [];
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
 
     appointments.forEach(app => {
-      const appDate = new Date(app.date);
-      appDate.setHours(0,0,0,0);
-
-      if (app.status === 'scheduled' && appDate >= today) {
+      const appDateTimestamp = new Date(app.date).setHours(0,0,0,0);
+      
+      if (app.status === 'scheduled' && appDateTimestamp >= todayTimestamp) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -336,5 +334,7 @@ export function ClientDashboard() {
      </div>
   );
 }
+
+    
 
     
