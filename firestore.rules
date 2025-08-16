@@ -1,44 +1,38 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
     // --- FUNÇÕES AUXILIARES ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      // Leitura: Pública se o perfil estiver completo, ou privada para o dono.
+      // Leitura pública de perfis completos
       allow read: if resource.data.profileComplete == true || isOwner(barberId);
-      // Escrita: Apenas o barbeiro pode criar ou atualizar seu próprio perfil.
+      // Barbeiro só pode gerenciar o próprio perfil
       allow create, update: if isOwner(barberId);
-      // Deleção: Ninguém pode deletar um perfil de barbeiro pelo app.
       allow delete: if false;
 
       // REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS)
       match /appointments/{appointmentId} {
         // Um cliente só pode criar um agendamento para si mesmo.
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.clientUid;
+        allow create: if request.auth.uid == request.resource.data.clientUid;
         
-        // O barbeiro pode ler e gerenciar tudo. O cliente pode ler seus próprios agendamentos.
-        allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
-        
-        // Apenas o barbeiro pode atualizar ou deletar agendamentos.
+        // Apenas o barbeiro pode atualizar ou deletar um agendamento.
         allow update, delete: if isOwner(barberId);
+        
+        // Um barbeiro pode ler todos os seus agendamentos, e um cliente pode ler os agendamentos que ele mesmo criou.
+        // Esta regra é a que permite a consulta collectionGroup no dashboard do cliente.
+        allow read: if isOwner(barberId) || request.auth.uid == resource.data.clientUid;
       }
     }
 
     // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-        // Gerenciamento: Um cliente pode ler, criar e atualizar seu próprio perfil.
+        // Um cliente só pode gerenciar seus próprios dados.
         allow read, create, update: if isOwner(clientId);
-        // Deleção: Ninguém pode deletar um perfil de cliente pelo app.
         allow delete: if false;
     }
   }
