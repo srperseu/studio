@@ -89,13 +89,17 @@ export function ClientDashboard() {
   }, [user]);
 
   const { scheduledAppointments, pastAppointments } = useMemo(() => {
-    const now = new Date();
     const scheduledList: AppointmentWithBarber[] = [];
     const pastList: AppointmentWithBarber[] = [];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     appointments.forEach(app => {
-      const appDateTime = new Date(`${app.date}T${app.time}`);
-      if (app.status === 'scheduled' && appDateTime >= now) {
+      const appDate = new Date(app.date);
+      appDate.setHours(0,0,0,0);
+
+      if (app.status === 'scheduled' && appDate >= today) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -332,3 +336,5 @@ export function ClientDashboard() {
      </div>
   );
 }
+
+    
