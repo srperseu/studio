@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,6 +17,14 @@ interface AppointmentWithBarber extends Appointment {
   barber: Barber | null;
 }
 
+// Function to get all barbers
+async function getAllBarbers(): Promise<Barber[]> {
+    const barbersCol = collection(db, 'barbers');
+    const barberSnapshot = await getDocs(barbersCol);
+    const barberList = barberSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Barber));
+    return barberList;
+}
+
 export function ClientDashboard() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<AppointmentWithBarber[]>([]);
@@ -26,38 +35,28 @@ export function ClientDashboard() {
       const fetchAppointments = async () => {
         setIsLoading(true);
         try {
-          // Use collectionGroup to query all appointments collections
-          const appointmentsQuery = query(
-            collectionGroup(db, 'appointments'),
-            where('clientUid', '==', user.uid)
-          );
+          const allBarbers = await getAllBarbers();
+          const allAppointments: AppointmentWithBarber[] = [];
 
-          const appointmentsSnapshot = await getDocs(appointmentsQuery);
-          const appointmentsData = appointmentsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            // The path of a subcollection document is 'collection/docId/subcollection/subDocId'
-            barberId: doc.ref.parent.parent?.id 
-          })) as (Appointment & { barberId?: string })[];
+          for (const barber of allBarbers) {
+            const appointmentsQuery = query(
+              collection(db, 'barbers', barber.id, 'appointments'),
+              where('clientUid', '==', user.uid)
+            );
 
-          // Now fetch the barber data for each appointment
-          const appointmentsWithBarber: AppointmentWithBarber[] = await Promise.all(
-            appointmentsData.map(async (app) => {
-              let barber: Barber | null = null;
-              if (app.barberId) {
-                const barberRef = doc(db, 'barbers', app.barberId);
-                const barberSnap = await getDoc(barberRef);
-                if (barberSnap.exists()) {
-                  barber = { id: barberSnap.id, ...barberSnap.data() } as Barber;
-                }
-              }
-              return { ...app, barber };
-            })
-          );
+            const appointmentsSnapshot = await getDocs(appointmentsQuery);
+            appointmentsSnapshot.forEach(doc => {
+              allAppointments.push({
+                ...(doc.data() as Appointment),
+                id: doc.id,
+                barber: barber, // Attach the barber data
+              });
+            });
+          }
           
           // Sort appointments by date client-side
-          appointmentsWithBarber.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setAppointments(appointmentsWithBarber);
+          allAppointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setAppointments(allAppointments);
 
         } catch (error) {
           console.error("Error fetching client appointments: ", error);
