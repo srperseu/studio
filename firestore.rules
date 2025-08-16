@@ -1,39 +1,41 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+
+    // --- REGRAS GLOBAIS (COLLECTION GROUP) ---
+    // Esta regra permite que a consulta em grupo do painel do cliente funcione.
+    // Ela permite que um usuário leia QUALQUER agendamento em QUALQUER agenda,
+    // desde que o clientUid no documento seja o seu próprio.
+    match /{path=**}/appointments/{appointmentId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.clientUid;
     }
 
-    // Barbeiros: Perfis são públicos para agendamento, mas apenas o dono pode editar.
+    // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      // Qualquer um pode ler um perfil de barbeiro se estiver completo.
-      allow get: if resource.data.profileComplete == true;
-      // Usuários logados podem listar os barbeiros para a página de agendamento.
+      // Qualquer pessoa, autenticada ou não, pode ler o perfil de um barbeiro se estiver completo.
+      allow get: if resource.data.profileComplete == true || request.auth.uid == barberId;
+      // Qualquer usuário logado pode listar os barbeiros para a página de agendamento.
       allow list: if request.auth != null;
-      // O barbeiro pode ler e escrever em seu próprio perfil a qualquer momento.
-      allow read, write: if isOwner(barberId);
 
-      // Agendamentos: A agenda é do barbeiro, mas clientes podem criar seus próprios agendamentos.
+      // Apenas o barbeiro pode ATUALIZAR ou DELETAR seu próprio perfil.
+      // A permissão de escrita (write) foi dividida para permitir a criação de agendamentos por clientes.
+      allow update, delete: if request.auth.uid == barberId;
+
+      // --- REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS) ---
       match /appointments/{appointmentId} {
-        // O barbeiro pode ler e gerenciar todos os seus agendamentos.
-        allow read, update, delete: if isOwner(barberId);
-        // Um cliente só pode criar um agendamento para si mesmo.
-        allow create: if isOwner(request.resource.data.clientUid);
+        // O barbeiro (dono da agenda) pode ler e escrever em seus agendamentos.
+        allow read, write: if request.auth.uid == barberId;
+        // Um cliente só pode CRIAR um agendamento para si mesmo.
+        allow create: if request.auth.uid == request.resource.data.clientUid;
       }
     }
-    
-    // Clientes: Perfis são totalmente privados.
+
+    // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-      allow read, write: if isOwner(clientId);
-    }
-    
-    // Regra Global para Collection Group: Permite que um cliente leia seus agendamentos em qualquer agenda.
-    // Esta regra é essencial para a tela "Meus Agendamentos" do cliente funcionar.
-    match /{path=**}/appointments/{appointmentId} {
-        allow read: if isOwner(resource.data.clientUid);
+      // Um cliente só pode ler ou escrever em seu próprio perfil.
+      allow read, write: if request.auth.uid == clientId;
     }
   }
 }
