@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getDocs, doc, collection, query } from 'firebase/firestore';
+import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
 
@@ -90,8 +90,9 @@ export function DashboardClient() {
   };
 
   useEffect(() => {
+    if (!user) return;
     fetchData();
-  }, [user, toast]);
+  }, [user]);
   
   const filteredScheduled = useMemo(() => {
     return scheduledAppointments.filter(app => {
@@ -395,3 +396,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
