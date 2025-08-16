@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,17 +6,20 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
-import { generateReminderAction } from '@/app/actions';
+import { generateReminderAction, cancelAppointmentAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icons } from './icons';
 import type { Barber, Appointment } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+
 
 export function DashboardClient() {
   const { user, loading: authLoading } = useAuth();
@@ -27,7 +31,7 @@ export function DashboardClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
-  const [isGeneratingReminder, setIsGeneratingReminder] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -40,7 +44,7 @@ export function DashboardClient() {
             setBarberData({ id: barberSnap.id, ...barberSnap.data() } as Barber);
           }
 
-          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'asc'));
+          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'desc'));
           const appointmentsSnapshot = await getDocs(q);
           const newAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => newAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
@@ -59,7 +63,7 @@ export function DashboardClient() {
 
   const handleGenerateReminder = async (appointment: Appointment) => {
     if (!barberData) return;
-    setIsGeneratingReminder(appointment.id);
+    setIsUpdating(appointment.id);
     
     const reminderDetails = {
       clientName: appointment.clientName,
@@ -75,9 +79,22 @@ export function DashboardClient() {
     } else {
       toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
-    setIsGeneratingReminder(null);
+    setIsUpdating(null);
   };
   
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!barberData) return;
+    setIsUpdating(appointmentId);
+    const result = await cancelAppointmentAction(barberData.id, appointmentId);
+    if (result.success) {
+      toast({ description: 'Agendamento cancelado com sucesso.' });
+      // The revalidation should handle the UI update
+    } else {
+      toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+    }
+    setIsUpdating(null);
+  }
+
   const copyToClipboard = async () => {
     if (modalContent.body) {
       try {
@@ -123,22 +140,55 @@ export function DashboardClient() {
             <CardContent>
               {appointments.length > 0 ? (
                 <div className="space-y-4">
-                  {appointments.map(app => (
-                    <div key={app.id} className="bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4 border-primary">
-                      <div className="flex-grow">
-                        <p className="font-bold text-lg text-primary">{app.clientName}</p>
-                        <p className="text-muted-foreground">{app.service}</p>
-                        <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
+                  {appointments.map(app => {
+                    const isCancelled = app.status === 'cancelled';
+                    return (
+                      <div key={app.id} className={cn(
+                        "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4 border-l-4",
+                        isCancelled ? 'border-muted-foreground/50' : 'border-primary',
+                        isCancelled && 'opacity-60'
+                      )}>
+                        <div className="flex-grow">
+                          <p className="font-bold text-lg text-primary">{app.clientName}</p>
+                          <p className="text-muted-foreground">{app.service}</p>
+                          <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
+                          {isCancelled && <Badge variant="destructive" className="mt-2 bg-muted-foreground">Cancelado</Badge>}
+                        </div>
+                        {!isCancelled && (
+                          <div className="flex flex-col sm:items-end gap-2">
+                            <Badge variant='default' className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
+                            <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isUpdating === app.id} className="bg-accent hover:bg-accent/90">
+                                {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
+                                Lembrete
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="destructive" disabled={isUpdating === app.id}>
+                                            <Icons.X className="mr-2 h-4 w-4" /> Cancelar
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta ação não pode ser desfeita. O agendamento será marcado como cancelado.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleCancelAppointment(app.id)}>
+                                                {isUpdating === app.id ? <Icons.Spinner /> : "Confirmar Cancelamento"}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col sm:items-end gap-2">
-                         <Badge variant={app.type === 'inShop' ? 'default' : 'destructive'} className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
-                         <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isGeneratingReminder === app.id} className="bg-accent hover:bg-accent/90">
-                           {isGeneratingReminder === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
-                           Lembrete
-                         </Button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">Nenhum agendamento encontrado.</p>
@@ -203,5 +253,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    

@@ -52,4 +52,5 @@ export interface Appointment {
   date: string;
   time: string;
   createdAt: Timestamp;
+  status: 'scheduled' | 'cancelled';
 }

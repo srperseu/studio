@@ -83,6 +83,7 @@ export async function createBooking(
       date: selectedDate, // Salva a data como string 'YYYY-MM-DD'
       time: selectedTime,
       createdAt: serverTimestamp(),
+      status: 'scheduled', // Novo campo
     });
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
@@ -93,5 +94,16 @@ export async function createBooking(
   }
 }
 
-
-
+export async function cancelAppointmentAction(barberId: string, appointmentId: string) {
+    try {
+        const appointmentRef = doc(db, `barbers/${barberId}/appointments`, appointmentId);
+        await updateDoc(appointmentRef, {
+            status: 'cancelled'
+        });
+        revalidatePath('/dashboard');
+        revalidatePath('/dashboard/client');
+        return { success: true, message: 'Agendamento cancelado.' };
+    } catch (error: any) {
+        return { success: false, message: `Erro ao cancelar agendamento: ${error.message}` };
+    }
+}
