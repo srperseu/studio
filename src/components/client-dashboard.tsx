@@ -27,11 +27,11 @@ export function ClientDashboard() {
       const fetchAppointments = async () => {
         setIsLoading(true);
         try {
-          // This query requires a specific collectionGroup rule in firestore.rules
+          // This query previously required a composite index. 
+          // The orderBy clause was removed to simplify the query and avoid the index requirement.
           const appointmentsQuery = query(
             collectionGroup(db, 'appointments'),
-            where('clientUid', '==', user.uid),
-            orderBy('date', 'desc')
+            where('clientUid', '==', user.uid)
           );
 
           const querySnapshot = await getDocs(appointmentsQuery);
@@ -54,6 +54,8 @@ export function ClientDashboard() {
           });
 
           const resolvedAppointments = await Promise.all(barberPromises);
+          // Sort appointments client-side after fetching
+          resolvedAppointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setAppointments(resolvedAppointments);
 
         } catch (error) {
