@@ -90,21 +90,21 @@ export function ClientDashboard() {
 
   const { scheduledAppointments, pastAppointments } = useMemo(() => {
     const now = new Date();
-    const scheduled: AppointmentWithBarber[] = [];
-    const past: AppointmentWithBarber[] = [];
+    const scheduledList: AppointmentWithBarber[] = [];
+    const pastList: AppointmentWithBarber[] = [];
 
     appointments.forEach(app => {
       const appDateTime = new Date(`${app.date}T${app.time}`);
       if (app.status === 'scheduled' && appDateTime >= now) {
-        scheduled.push(app);
+        scheduledList.push(app);
       } else {
-        past.push(app);
+        pastList.push(app);
       }
     });
     
-    scheduled.sort((a,b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    scheduledList.sort((a,b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
-    return { scheduledAppointments: scheduled, pastAppointments: past };
+    return { scheduledAppointments: scheduledList, pastAppointments: pastList };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
@@ -331,7 +331,3 @@ export function ClientDashboard() {
      </div>
   );
 }
-
-    
-
-    
