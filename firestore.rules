@@ -1,33 +1,31 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Barbers can be read by anyone if their profile is complete.
-    // A barber can only update or delete their own profile.
-    // Listing barbers is allowed for the booking page.
+    // Barbers can be read by anyone.
+    // A barber can only update or delete their own profile document.
     match /barbers/{barberId} {
       allow read, list: if true;
       allow update, delete: if request.auth.uid == barberId;
-
-      // Rules for appointments subcollection
-      // A client can create an appointment for themselves.
-      // The barber can read, list, update, and delete appointments in their own schedule.
-      match /appointments/{appointmentId} {
-        allow create: if request.auth.uid == request.resource.data.clientUid;
-        allow read, list, update, delete: if request.auth.uid == barberId;
-      }
     }
 
-    // Clients can be read and written only by the authenticated user themselves.
+    // A client can create an appointment for themselves in a barber's schedule.
+    // The barber can read, list, update, and delete their appointments.
+    // A client can also read the details of their own appointment.
+    match /barbers/{barberId}/appointments/{appointmentId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.clientUid;
+      allow read, list, update, delete: if request.auth.uid == barberId;
+      allow get: if request.auth.uid == resource.data.clientUid;
+    }
+
+    // Clients can only read and write their own profile.
     match /clients/{clientId} {
       allow read, write: if request.auth.uid == clientId;
     }
     
-    // This rule allows a client to query all their appointments across all barbers.
-    // It's used for the client dashboard.
+    // This allows a client to query all their appointments across all barbers.
     match /{path=**}/appointments/{appointmentId} {
-      allow get, list: if request.auth.uid == resource.data.clientUid;
+      allow list: if request.auth.uid == resource.data.clientUid;
     }
   }
 }
