@@ -1,12 +1,29 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ATENÇÃO: Regra insegura apenas para fins de depuração.
-    // Permite que qualquer pessoa leia e escreva em todo o banco de dados.
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Barbers Collection
+    // - Anyone can read/list barbers (for the booking page).
+    // - Only the barber can create, update, or delete their own profile.
+    match /barbers/{barberId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth.uid == barberId;
+
+      // Appointments Subcollection
+      // - A logged-in client can create an appointment for themselves.
+      // - The barber can read and manage all appointments in their own schedule.
+      // - The client who made the appointment can also read it (to see it on their dashboard).
+      match /appointments/{appointmentId} {
+        allow create: if request.auth.uid == request.resource.data.clientUid;
+        allow read, update, delete: if request.auth.uid == barberId || request.auth.uid == resource.data.clientUid;
+      }
+    }
+
+    // Clients Collection
+    // - A client can only read or write to their own document.
+    match /clients/{clientId} {
+      allow read, write: if request.auth.uid == clientId;
     }
   }
 }
