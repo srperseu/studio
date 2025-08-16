@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -55,7 +54,7 @@ export function DashboardClient() {
           
           const sortedAppointments = allAppointments.sort((a,b) => {
               const dateA = new Date(`${a.date}T${a.time}`);
-              const dateB = new Date(`${b.date}T${a.time}`);
+              const dateB = new Date(`${b.date}T${b.time}`);
               return dateB.getTime() - dateA.getTime();
           });
           
@@ -94,7 +93,7 @@ export function DashboardClient() {
         }
     });
 
-    pending.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    pending.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${a.time}`).getTime());
     scheduled.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     
     return { pendingAppointments: pending, scheduledAppointments: scheduled, pastAppointments: past };
@@ -300,7 +299,7 @@ export function DashboardClient() {
                       <TabsContent value="all">
                           {filteredScheduled.length > 0 ? (
                               <div className="space-y-4">
-                                  {scheduledAppointments.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                                  {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
                               </div>
                           ) : (
                               <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
@@ -343,7 +342,7 @@ export function DashboardClient() {
                       <TabsContent value="all">
                           {filteredHistory.length > 0 ? (
                               <div className="space-y-4">
-                                  {pastAppointments.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                                  {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                               </div>
                           ) : (
                               <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
@@ -445,5 +444,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
