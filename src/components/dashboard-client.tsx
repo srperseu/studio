@@ -88,7 +88,11 @@ export function DashboardClient() {
     const result = await cancelAppointmentAction(barberData.id, appointmentId);
     if (result.success) {
       toast({ description: 'Agendamento cancelado com sucesso.' });
-      // The revalidation should handle the UI update
+      setAppointments(prev => 
+        prev.map(app => 
+            app.id === appointmentId ? { ...app, status: 'cancelled' } : app
+        )
+      );
     } else {
       toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
@@ -156,7 +160,9 @@ export function DashboardClient() {
                         </div>
                         {!isCancelled && (
                           <div className="flex flex-col sm:items-end gap-2">
-                            <Badge variant='default' className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
+                            <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90')}>
+                                {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
+                            </Badge>
                             <div className="flex gap-2">
                                 <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isUpdating === app.id} className="bg-accent hover:bg-accent/90">
                                 {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}

@@ -81,6 +81,11 @@ export function ClientDashboard() {
     const result = await cancelAppointmentAction(appointment.barber.id, appointment.id);
     if (result.success) {
         toast({ description: 'Agendamento cancelado com sucesso.' });
+        setAppointments(prev => 
+            prev.map(app => 
+                app.id === appointment.id ? { ...app, status: 'cancelled' } : app
+            )
+        );
     } else {
         toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
