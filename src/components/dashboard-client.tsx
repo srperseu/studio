@@ -131,7 +131,7 @@ export function DashboardClient() {
                         <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
                       </div>
                       <div className="flex flex-col sm:items-end gap-2">
-                         <Badge variant={app.type === 'inShop' ? 'secondary' : 'default'} className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : ''}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
+                         <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
                          <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isGeneratingReminder === app.id} className="bg-accent hover:bg-accent/90">
                            {isGeneratingReminder === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                            Lembrete
