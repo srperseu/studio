@@ -17,7 +17,7 @@ import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface AppointmentWithBarber extends Appointment {
   barber: Barber | null;
@@ -276,5 +276,7 @@ export function ClientDashboard() {
      </div>
   );
 }
+
+    
 
     

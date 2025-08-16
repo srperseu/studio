@@ -20,7 +20,7 @@ import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export function DashboardClient() {
@@ -101,16 +101,10 @@ export function DashboardClient() {
   }, [scheduledAppointments, scheduledFilter]);
 
   const filteredHistory = useMemo(() => {
-    // We filter from the past appointments, but also include the pending ones in the history view.
-    const allHistory = [...pastAppointments];
-    return allHistory.filter(app => {
+    return pastAppointments.filter(app => {
         if (historyFilter === 'all') return true;
-         // Special case for 'pending' which is a 'scheduled' in the past
-        if (historyFilter === 'completed' && app.status === 'completed') return true;
-        if (historyFilter === 'cancelled' && app.status === 'cancelled') return true;
-        if (historyFilter === 'no-show' && app.status === 'no-show') return true;
-        return false;
-    }).sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
+        return app.status === historyFilter;
+    });
   }, [pastAppointments, historyFilter]);
 
 
@@ -403,5 +397,7 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
 
     
