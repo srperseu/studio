@@ -1,61 +1,52 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 60% 10%; /* Azul Meia-Noite */
-    --foreground: 220 13% 91%; /* Branco-Gelo */
-
-    --card: 210 60% 13%; /* Tom de card sutilmente mais claro */
-    --card-foreground: 220 13% 91%;
-
-    --popover: 210 60% 10%;
-    --popover-foreground: 220 13% 91%;
-
-    --primary: 285 19% 68%; /* Ameixa */
-    --primary-foreground: 210 60% 10%;
-
-    --secondary: 210 60% 20%;
-    --secondary-foreground: 220 13% 91%;
-
-    --muted: 210 60% 15%;
-    --muted-foreground: 220 13% 70%;
-
-    --accent: 33 99% 47%; /* Laranja Queimado */
-    --accent-foreground: 210 60% 10%;
-
-    --destructive: 348 53% 37%; /* Bordô */
-    --destructive-foreground: 220 13% 91%;
-
-    --border: 210 60% 25%;
-    --input: 210 60% 20%;
-    --ring: 285 19% 75%;
-    --radius: 0.75rem; /* Aumentei um pouco o arredondamento para um look mais moderno */
+    --background: 50 43% 91%;    /* #F4F1DE (Areia) */
+    --foreground: 227 10% 24%;   /* #3D405B (Grafite) */
+    --card: 50 43% 94%;
+    --card-foreground: 227 10% 24%;
+    --popover: 50 43% 91%;
+    --popover-foreground: 227 10% 24%;
+    --primary: 153 23% 62%;     /* #81B29A (Verde Sálvia) */
+    --primary-foreground: 227 10% 15%;
+    --secondary: 50 43% 85%;
+    --secondary-foreground: 227 10% 24%;
+    --muted: 50 43% 85%;
+    --muted-foreground: 227 10% 40%;
+    --accent: 14 72% 62%;       /* #E07A5F (Terracota) */
+    --accent-foreground: 227 10% 15%;
+    --destructive: 348 97% 42%;  /* #D90429 (Vinho) */
+    --destructive-foreground: 50 43% 91%;
+    --border: 50 43% 80%;
+    --input: 50 43% 80%;
+    --ring: 153 23% 62%;
+    --radius: 0.75rem;
   }
 
-  /* Vamos manter o modo escuro idêntico por enquanto */
   .dark {
-    --background: 210 60% 10%;
-    --foreground: 220 13% 91%;
-    --card: 210 60% 13%;
-    --card-foreground: 220 13% 91%;
-    --popover: 210 60% 10%;
-    --popover-foreground: 220 13% 91%;
-    --primary: 285 19% 68%;
-    --primary-foreground: 210 60% 10%;
-    --secondary: 210 60% 20%;
-    --secondary-foreground: 220 13% 91%;
-    --muted: 210 60% 15%;
-    --muted-foreground: 220 13% 70%;
-    --accent: 33 99% 47%;
-    --accent-foreground: 210 60% 10%;
-    --destructive: 348 53% 37%;
-    --destructive-foreground: 220 13% 91%;
-    --border: 210 60% 25%;
-    --input: 210 60% 20%;
-    --ring: 285 19% 75%;
+    /* Mantendo o tema escuro como backup, caso você queira usá-lo no futuro */
+    --background: 227 10% 24%;
+    --foreground: 50 43% 91%;
+    --card: 227 10% 28%;
+    --card-foreground: 50 43% 91%;
+    --popover: 227 10% 24%;
+    --popover-foreground: 50 43% 91%;
+    --primary: 153 23% 62%;
+    --primary-foreground: 227 10% 15%;
+    --secondary: 50 43% 85%;
+    --secondary-foreground: 227 10% 24%;
+    --muted: 50 43% 85%;
+    --muted-foreground: 227 10% 40%;
+    --accent: 14 72% 62%;
+    --accent-foreground: 227 10% 15%;
+    --destructive: 348 97% 42%;
+    --destructive-foreground: 50 43% 91%;
+    --border: 50 43% 80%;
+    --input: 50 43% 80%;
+    --ring: 153 23% 62%;
   }
 }
 
