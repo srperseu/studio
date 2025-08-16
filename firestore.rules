@@ -4,43 +4,37 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // --- FUNÇÕES AUXILIARES ---
-    // Verifica se o usuário que faz a requisição está logado.
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Verifica se o usuário logado é o dono do documento em questão.
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      // Leitura: Pública se o perfil estiver completo.
-      allow read: if resource.data.profileComplete == true;
-      // Escrita: Apenas o barbeiro pode criar ou atualizar seu próprio perfil.
+      allow read: if true; // Perfil do barbeiro é público
       allow create, update: if isOwner(barberId);
-      // Deleção: Ninguém pode deletar um perfil de barbeiro pelo app.
       allow delete: if false;
 
       // REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS)
       match /appointments/{appointmentId} {
-        // Leitura: O barbeiro ou o cliente do agendamento podem ler.
-        allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
-        
-        // Criação: Um usuário logado só pode criar um agendamento para si mesmo.
+        // Um usuário só pode criar um agendamento para si mesmo.
         allow create: if isSignedIn() && isOwner(request.resource.data.clientUid);
         
-        // Atualização e Deleção: Apenas o barbeiro (dono da agenda) pode atualizar ou deletar.
-        allow update, delete: if isOwner(barberId);
+        // Leitura: O barbeiro pode ler tudo, e o cliente pode ler seus próprios agendamentos.
+        allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
+        
+        // Apenas o barbeiro ou o cliente do agendamento podem deletar/atualizar.
+        allow update, delete: if isOwner(barberId) || isOwner(resource.data.clientUid);
       }
     }
 
     // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-        // Gerenciamento: Um cliente pode ler, criar e atualizar seu próprio perfil.
+        // Um cliente só pode gerenciar seu próprio perfil.
         allow read, create, update: if isOwner(clientId);
-        // Deleção: Ninguém pode deletar um perfil de cliente pelo app.
         allow delete: if false;
     }
   }

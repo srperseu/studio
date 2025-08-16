@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collectionGroup, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, getDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
@@ -27,6 +27,8 @@ export function ClientDashboard() {
       const fetchAppointments = async () => {
         setIsLoading(true);
         try {
+          // This query is the source of the permission error with the previous rules.
+          // It requires a rule that can be evaluated on a collection group.
           const appointmentsQuery = query(
             collectionGroup(db, 'appointments'),
             where('clientUid', '==', user.uid),
