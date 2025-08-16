@@ -14,27 +14,31 @@ service cloud.firestore {
 
     // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      allow read: if true; // Perfil do barbeiro é público
+      // Leitura: Pública se o perfil estiver completo, ou privada para o dono.
+      allow read: if resource.data.profileComplete == true || isOwner(barberId);
+      // Escrita: Apenas o barbeiro pode criar ou atualizar seu próprio perfil.
       allow create, update: if isOwner(barberId);
+      // Deleção: Ninguém pode deletar um perfil de barbeiro pelo app.
       allow delete: if false;
 
       // REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS)
       match /appointments/{appointmentId} {
-        // Um usuário só pode criar um agendamento para si mesmo.
-        allow create: if isSignedIn() && isOwner(request.resource.data.clientUid);
+        // Um cliente só pode criar um agendamento para si mesmo.
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.clientUid;
         
-        // Leitura: O barbeiro pode ler tudo, e o cliente pode ler seus próprios agendamentos.
+        // O barbeiro pode ler e gerenciar tudo. O cliente pode ler seus próprios agendamentos.
         allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
         
-        // Apenas o barbeiro ou o cliente do agendamento podem deletar/atualizar.
-        allow update, delete: if isOwner(barberId) || isOwner(resource.data.clientUid);
+        // Apenas o barbeiro pode atualizar ou deletar agendamentos.
+        allow update, delete: if isOwner(barberId);
       }
     }
 
     // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-        // Um cliente só pode gerenciar seu próprio perfil.
+        // Gerenciamento: Um cliente pode ler, criar e atualizar seu próprio perfil.
         allow read, create, update: if isOwner(clientId);
+        // Deleção: Ninguém pode deletar um perfil de cliente pelo app.
         allow delete: if false;
     }
   }
