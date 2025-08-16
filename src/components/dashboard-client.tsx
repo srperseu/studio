@@ -55,7 +55,7 @@ export function DashboardClient() {
           
           const sortedAppointments = allAppointments.sort((a,b) => {
               const dateA = new Date(`${a.date}T${a.time}`);
-              const dateB = new Date(`${b.date}T${b.time}`);
+              const dateB = new Date(`${b.date}T${a.time}`);
               return dateB.getTime() - dateA.getTime();
           });
           
@@ -86,12 +86,11 @@ export function DashboardClient() {
         const appDateTime = new Date(`${app.date}T${app.time}`);
         if (app.status === 'scheduled' && appDateTime >= now) {
             scheduled.push(app);
-        } else if (app.status === 'scheduled' && appDateTime < now) {
-            pending.push(app)
-            past.push(app); // Also add to past to be shown in history
-        }
-        else {
+        } else {
             past.push(app);
+            if (app.status === 'scheduled' && appDateTime < now) {
+                pending.push(app)
+            }
         }
     });
 
@@ -298,28 +297,10 @@ export function DashboardClient() {
                           <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
                           <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
                       </TabsList>
-                      <TabsContent value="all">
+                      <TabsContent value={scheduledFilter}>
                           {filteredScheduled.length > 0 ? (
                               <div className="space-y-4">
                                   {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                              </div>
-                          ) : (
-                              <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="inShop">
-                          {filteredScheduled.length > 0 ? (
-                              <div className="space-y-4">
-                                  {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                              </div>
-                          ) : (
-                              <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="atHome">
-                          {filteredScheduled.length > 0 ? (
-                              <div className="space-y-4">
-                                  {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
                               </div>
                           ) : (
                               <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
@@ -341,37 +322,10 @@ export function DashboardClient() {
                           <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
                           <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
                       </TabsList>
-                      <TabsContent value="all">
+                      <TabsContent value={historyFilter}>
                           {filteredHistory.length > 0 ? (
                               <div className="space-y-4">
                                   {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
-                              </div>
-                          ) : (
-                              <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="completed">
-                          {filteredHistory.filter(a => a.status === 'completed').length > 0 ? (
-                              <div className="space-y-4">
-                                  {filteredHistory.filter(a => a.status === 'completed').map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
-                              </div>
-                          ) : (
-                              <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="cancelled">
-                          {filteredHistory.filter(a => a.status === 'cancelled').length > 0 ? (
-                              <div className="space-y-4">
-                                  {filteredHistory.filter(a => a.status === 'cancelled').map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
-                              </div>
-                          ) : (
-                              <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="no-show">
-                           {filteredHistory.filter(a => a.status === 'no-show').length > 0 ? (
-                              <div className="space-y-4">
-                                  {filteredHistory.filter(a => a.status === 'no-show').map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                               </div>
                           ) : (
                               <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
@@ -446,7 +400,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
-
-    
