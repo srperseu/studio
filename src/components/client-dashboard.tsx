@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -5,7 +6,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
@@ -38,7 +39,7 @@ export function ClientDashboard() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled' | 'no-show'>('all');
 
 
   const fetchAppointments = async () => {
@@ -52,7 +53,6 @@ export function ClientDashboard() {
           const appointmentsQuery = query(
             collection(db, 'barbers', barber.id, 'appointments'),
             where('clientUid', '==', user.uid)
-            // Removido o orderBy para evitar erro de índice. A ordenação será feita no cliente.
           );
 
           const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -65,21 +65,23 @@ export function ClientDashboard() {
           });
         }
         
-        // Ordenação feita no cliente
-        const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time));
+        const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
+        const now = new Date();
         const scheduled: AppointmentWithBarber[] = [];
         const past: AppointmentWithBarber[] = [];
 
         sortedAppointments.forEach(app => {
-          const appDate = new Date(app.date + 'T00:00:00'); // Use T00 to avoid timezone issues with date compare
-          if (app.status === 'cancelled' || appDate < today) {
-            past.push(app);
+          if (app.status === 'scheduled') {
+            const appDateTime = new Date(`${app.date}T${app.time}`);
+            if (appDateTime >= now) {
+                scheduled.push(app);
+            } else {
+                // Barbeiro ainda não confirmou, mas para o cliente já está no passado
+                past.push(app);
+            }
           } else {
-            scheduled.push(app);
+            past.push(app);
           }
         });
 
@@ -109,13 +111,16 @@ export function ClientDashboard() {
   const filteredHistory = useMemo(() => {
     return pastAppointments.filter(app => {
         if (historyFilter === 'all') return true;
+        if (historyFilter === 'completed') return app.status === 'completed';
         if (historyFilter === 'cancelled') return app.status === 'cancelled';
+        if (historyFilter === 'no-show') return app.status === 'no-show';
+        
+        // Inclui agendamentos 'scheduled' que já passaram (barbeiro não confirmou)
         if (historyFilter === 'completed') {
-            const appDate = new Date(app.date + 'T00:00:00');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return app.status !== 'cancelled' && appDate < today;
+             const appDateTime = new Date(`${app.date}T${app.time}`);
+             return app.status === 'scheduled' && appDateTime < new Date();
         }
+
         return false;
     });
   }, [pastAppointments, historyFilter]);
@@ -135,12 +140,22 @@ export function ClientDashboard() {
   }
 
   const AppointmentCard = ({ app }: { app: AppointmentWithBarber}) => {
-    const isCancelled = app.status === 'cancelled';
-    const isPast = new Date(app.date + 'T00:00:00') < new Date(new Date().setHours(0, 0, 0, 0));
-    const isActionable = !isCancelled && !isPast;
+    const isPast = new Date(`${app.date}T${app.time}`) < new Date();
+    const isActionable = app.status === 'scheduled' && !isPast;
+    
+    const getStatusBadge = () => {
+        switch(app.status) {
+            case 'completed': return <Badge variant="secondary" className="bg-green-600 text-white">Finalizado</Badge>;
+            case 'cancelled': return <Badge variant="destructive" className="bg-muted-foreground">Cancelado</Badge>;
+            case 'no-show': return <Badge variant="destructive">Não Compareceu</Badge>;
+            case 'scheduled': 
+                if (isPast) return <Badge variant="outline">Aguardando Confirmação</Badge>;
+                return null;
+        }
+    }
 
     return (
-        <Card className={cn("bg-card border-border shadow-lg flex flex-col", (isCancelled || isPast) && 'opacity-60 bg-muted/50')}>
+        <Card className={cn("bg-card border-border shadow-lg flex flex-col", !isActionable && 'opacity-70 bg-muted/50')}>
             <CardHeader>
                 <CardTitle className="text-primary">{app.service}</CardTitle>
                 <p className="text-sm text-muted-foreground">com {app.barber?.fullName || 'Barbeiro desconhecido'}</p>
@@ -158,8 +173,7 @@ export function ClientDashboard() {
                     <Badge variant={app.type === 'inShop' ? 'secondary' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : '')}>
                         {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                     </Badge>
-                    {isCancelled && <Badge variant="destructive" className="bg-muted-foreground">Cancelado</Badge>}
-                    {isPast && !isCancelled && <Badge variant="outline">Finalizado</Badge>}
+                    {getStatusBadge()}
                 </div>
             </CardContent>
             {isActionable && (
@@ -244,7 +258,7 @@ export function ClientDashboard() {
                             {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
+                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
                     )}
                 </div>
                 
@@ -253,10 +267,11 @@ export function ClientDashboard() {
                         <Separator className="my-8" />
                         <h2 className="text-2xl font-headline font-semibold mb-4">Histórico de Agendamentos</h2>
                         <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)}>
-                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsList className="grid w-full grid-cols-4 mb-4">
                                 <TabsTrigger value="all">Todos</TabsTrigger>
                                 <TabsTrigger value="completed">Realizados</TabsTrigger>
                                 <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
+                                <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
                             </TabsList>
                         </Tabs>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -49,8 +49,8 @@ export interface Appointment {
   clientUid: string;
   service: string;
   type: 'inShop' | 'atHome';
-  date: string;
-  time: string;
+  date: string; // "YYYY-MM-DD"
+  time: string; // "HH:MM"
   createdAt: Timestamp;
-  status: 'scheduled' | 'cancelled';
+  status: 'scheduled' | 'cancelled' | 'completed' | 'no-show';
 }

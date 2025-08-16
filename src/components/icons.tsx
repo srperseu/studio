@@ -1,3 +1,4 @@
+
 import {
   User,
   Mail,
@@ -16,6 +17,8 @@ import {
   Loader2,
   CircleUserRound,
   X,
+  Check,
+  AlertTriangle,
   type LucideProps
 } from 'lucide-react';
 
@@ -37,4 +40,6 @@ export const Icons = {
   Spinner: (props: LucideProps) => <Loader2 className="animate-spin" {...props} />,
   CircleUserRound: (props: LucideProps) => <CircleUserRound {...props} />,
   X: (props: LucideProps) => <X {...props} />,
+  Check: (props: LucideProps) => <Check {...props} />,
+  AlertTriangle: (props: LucideProps) => <AlertTriangle {...props} />,
 };

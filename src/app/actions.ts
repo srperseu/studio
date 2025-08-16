@@ -83,7 +83,7 @@ export async function createBooking(
       date: selectedDate, // Salva a data como string 'YYYY-MM-DD'
       time: selectedTime,
       createdAt: serverTimestamp(),
-      status: 'scheduled', // Novo campo
+      status: 'scheduled',
     });
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
@@ -94,16 +94,27 @@ export async function createBooking(
   }
 }
 
-export async function cancelAppointmentAction(barberId: string, appointmentId: string) {
+async function updateAppointmentStatus(barberId: string, appointmentId: string, status: 'cancelled' | 'completed' | 'no-show') {
     try {
         const appointmentRef = doc(db, `barbers/${barberId}/appointments`, appointmentId);
-        await updateDoc(appointmentRef, {
-            status: 'cancelled'
-        });
+        await updateDoc(appointmentRef, { status });
         revalidatePath('/dashboard');
         revalidatePath('/dashboard/client');
-        return { success: true, message: 'Agendamento cancelado.' };
+        return { success: true, message: `Agendamento atualizado para ${status}.` };
     } catch (error: any) {
-        return { success: false, message: `Erro ao cancelar agendamento: ${error.message}` };
+        return { success: false, message: `Erro ao atualizar agendamento: ${error.message}` };
     }
+}
+
+
+export async function cancelAppointmentAction(barberId: string, appointmentId: string) {
+    return updateAppointmentStatus(barberId, appointmentId, 'cancelled');
+}
+
+export async function completeAppointmentAction(barberId: string, appointmentId: string) {
+    return updateAppointmentStatus(barberId, appointmentId, 'completed');
+}
+
+export async function markAsNoShowAction(barberId: string, appointmentId: string) {
+    return updateAppointmentStatus(barberId, appointmentId, 'no-show');
 }
