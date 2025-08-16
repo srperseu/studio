@@ -76,28 +76,31 @@ export function DashboardClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const { pendingAppointments, scheduledAppointments, pastAppointments } = useMemo(() => {
+  const { scheduledAppointments, pastAppointments } = useMemo(() => {
     const now = new Date();
-    const pendingList: Appointment[] = [];
     const scheduledList: Appointment[] = [];
     const pastList: Appointment[] = [];
 
     appointments.forEach(app => {
         const appDateTime = new Date(`${app.date}T${app.time}`);
-        if (app.status === 'scheduled' && appDateTime < now) {
-            pendingList.push(app)
-        } else if (app.status === 'scheduled' && appDateTime >= now) {
+        if (app.status === 'scheduled' && appDateTime >= now) {
             scheduledList.push(app);
         } else {
             pastList.push(app);
         }
     });
 
-    pendingList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     
-    return { pendingAppointments: pendingList, scheduledAppointments: scheduledList, pastAppointments: pastList };
+    return { scheduledAppointments: scheduledList, pastAppointments: pastList };
   }, [appointments]);
+
+  const pendingAppointments = useMemo(() => {
+    const now = new Date();
+    return pastAppointments
+      .filter(app => app.status === 'scheduled' && new Date(`${app.date}T${app.time}`) < now)
+      .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+  }, [pastAppointments]);
 
   const filteredScheduled = useMemo(() => {
     if (scheduledFilter === 'all') return scheduledAppointments;
@@ -185,7 +188,7 @@ export function DashboardClient() {
           <div key={app.id} className={cn(
             "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4",
             context === 'pending' ? 'border-accent' : context === 'scheduled' ? 'border-primary' : 'border-muted-foreground/50',
-            !isActionable && 'opacity-70'
+            context === 'history' && status !== 'scheduled' && 'opacity-70'
           )}>
             <div className="flex-grow">
               <p className="font-bold text-lg text-primary">{app.clientName}</p>
@@ -296,13 +299,13 @@ export function DashboardClient() {
                     <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
                     <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
                 </TabsList>
-                <TabsContent value="all">
+                 <TabsContent value="all">
                     {filteredScheduled.length > 0 ? (
                         <div className="space-y-4">
                             {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento para este filtro.</p>
+                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
                     )}
                 </TabsContent>
                 <TabsContent value="inShop">
@@ -345,7 +348,7 @@ export function DashboardClient() {
                               {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
                           </div>
                       ) : (
-                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico.</p>
                       )}
                   </TabsContent>
                   <TabsContent value="completed">
@@ -444,7 +447,5 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
 
     
