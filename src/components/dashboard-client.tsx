@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { onSnapshot, doc, collection, query, orderBy } from 'firebase/firestore';
+import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction } from '@/app/actions';
 
@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Icons } from './icons';
 import type { Barber, Appointment } from '@/lib/types';
 import { db } from '@/lib/firebase';
+import { getDoc } from 'firebase/firestore';
 
 export function DashboardClient() {
   const { user, loading: authLoading } = useAuth();
@@ -27,37 +28,32 @@ export function DashboardClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
   const [isGeneratingReminder, setIsGeneratingReminder] = useState<string | null>(null);
-  const appointmentsRef = useRef<Appointment[]>([]);
 
   useEffect(() => {
     if (user) {
-      const unsubProfile = onSnapshot(doc(db, 'barbers', user.uid), (doc) => {
-        if (doc.exists()) {
-          setBarberData({ id: doc.id, ...doc.data() } as Barber);
-        }
-        setIsLoading(false);
-      });
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          const barberRef = doc(db, 'barbers', user.uid);
+          const barberSnap = await getDoc(barberRef);
+          if (barberSnap.exists()) {
+            setBarberData({ id: barberSnap.id, ...barberSnap.data() } as Barber);
+          }
 
-      const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'asc'));
-      const unsubAppointments = onSnapshot(q, (querySnapshot) => {
-        const newAppointments: Appointment[] = [];
-        querySnapshot.forEach((doc) => newAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
-        
-        if (appointmentsRef.current.length > 0 && newAppointments.length > appointmentsRef.current.length) {
-            const latest = newAppointments.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis())[0];
-            toast({
-                title: "Novo Agendamento!",
-                description: `Novo agendamento de ${latest.clientName}!`,
-            });
-        }
-        setAppointments(newAppointments);
-        appointmentsRef.current = newAppointments;
-      });
+          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'asc'));
+          const appointmentsSnapshot = await getDocs(q);
+          const newAppointments: Appointment[] = [];
+          appointmentsSnapshot.forEach((doc) => newAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
+          setAppointments(newAppointments);
 
-      return () => {
-        unsubProfile();
-        unsubAppointments();
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+            toast({ title: 'Erro', description: 'Não foi possível carregar os dados do painel.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
       };
+      fetchData();
     }
   }, [user, toast]);
 
@@ -65,7 +61,6 @@ export function DashboardClient() {
     if (!barberData) return;
     setIsGeneratingReminder(appointment.id);
     
-    // Criar um objeto simples para passar para a Server Action
     const reminderDetails = {
       clientName: appointment.clientName,
       service: appointment.service,
@@ -208,3 +203,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
