@@ -3,30 +3,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // --- FUNÇÕES AUXILIARES ---
+    // Verifica se o usuário que faz a requisição está logado.
     function isSignedIn() {
       return request.auth != null;
     }
     
+    // Verifica se o usuário logado é o dono do documento em questão.
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      allow read: if resource.data.profileComplete == true || isOwner(barberId);
+      // Leitura: Pública se o perfil estiver completo.
+      allow read: if resource.data.profileComplete == true;
+      // Escrita: Apenas o barbeiro pode criar ou atualizar seu próprio perfil.
       allow create, update: if isOwner(barberId);
+      // Deleção: Ninguém pode deletar um perfil de barbeiro pelo app.
       allow delete: if false;
 
+      // REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS)
       match /appointments/{appointmentId} {
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.clientUid;
+        // Leitura: O barbeiro ou o cliente do agendamento podem ler.
+        allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
         
-        allow read: if isSignedIn() && (isOwner(barberId) || isOwner(resource.data.clientUid));
+        // Criação: Um usuário logado só pode criar um agendamento para si mesmo.
+        allow create: if isSignedIn() && isOwner(request.resource.data.clientUid);
         
+        // Atualização e Deleção: Apenas o barbeiro (dono da agenda) pode atualizar ou deletar.
         allow update, delete: if isOwner(barberId);
       }
     }
 
+    // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
+        // Gerenciamento: Um cliente pode ler, criar e atualizar seu próprio perfil.
         allow read, create, update: if isOwner(clientId);
+        // Deleção: Ninguém pode deletar um perfil de cliente pelo app.
         allow delete: if false;
     }
   }
