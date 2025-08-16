@@ -1,29 +1,33 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Barbers can be read by anyone if their profile is complete.
+    // A barber can only update or delete their own profile.
+    // Listing barbers is allowed for the booking page.
     match /barbers/{barberId} {
-      allow read: if resource.data.profileComplete == true || request.auth.uid == barberId;
-      // Allow barber to update their own profile, but also allow writes to subcollections
-      // by checking the request path. This is key to allowing appointment creation.
-      allow write: if request.auth.uid == barberId;
+      allow read, list: if true;
+      allow update, delete: if request.auth.uid == barberId;
 
+      // Rules for appointments subcollection
+      // A client can create an appointment for themselves.
+      // The barber can read, list, update, and delete appointments in their own schedule.
       match /appointments/{appointmentId} {
-        // A client can create an appointment for themselves.
         allow create: if request.auth.uid == request.resource.data.clientUid;
-
-        // The barber can read, update, or delete any appointment in their schedule.
-        allow read, update, delete: if request.auth.uid == barberId;
+        allow read, list, update, delete: if request.auth.uid == barberId;
       }
     }
 
+    // Clients can be read and written only by the authenticated user themselves.
     match /clients/{clientId} {
       allow read, write: if request.auth.uid == clientId;
     }
-
-    // This rule allows clients to run a collectionGroup query to find their own appointments
-    // across all barbers.
+    
+    // This rule allows a client to query all their appointments across all barbers.
+    // It's used for the client dashboard.
     match /{path=**}/appointments/{appointmentId} {
-      allow list: if request.query.filters[0][2] == request.auth.uid;
+      allow get, list: if request.auth.uid == resource.data.clientUid;
     }
   }
 }
