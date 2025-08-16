@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { createAppointment } from '@/app/actions';
+import { createBooking } from '@/app/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
@@ -119,7 +119,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     
     setIsLoading(true);
 
-    const result = await createAppointment(
+    const result = await createBooking(
         selectedBarber.id,
         user.uid,
         clientName,
