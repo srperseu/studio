@@ -4,13 +4,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getDocs, doc, collection, query } from 'firebase/firestore';
+import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,9 +29,7 @@ export function DashboardClient() {
   const { toast } = useToast();
 
   const [barberData, setBarberData] = useState<Barber | null>(null);
-  const [pendingAppointments, setPendingAppointments] = useState<Appointment[]>([]);
-  const [scheduledAppointments, setScheduledAppointments] = useState<Appointment[]>([]);
-  const [pastAppointments, setPastAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
@@ -55,29 +53,13 @@ export function DashboardClient() {
           const allAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => allAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
           
-          const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
-
-          const now = new Date();
-          const pending: Appointment[] = [];
-          const scheduled: Appointment[] = [];
-          const past: Appointment[] = [];
-
-          sortedAppointments.forEach(app => {
-              const appDateTime = new Date(`${app.date}T${app.time}`);
-              
-              if (app.status === 'scheduled' && appDateTime >= now) {
-                  scheduled.push(app);
-              } else {
-                  if(app.status === 'scheduled' && appDateTime < now) {
-                    pending.push(app);
-                  }
-                  past.push(app);
-              }
+          const sortedAppointments = allAppointments.sort((a,b) => {
+              const dateA = new Date(`${a.date}T${a.time}`);
+              const dateB = new Date(`${b.date}T${b.time}`);
+              return dateB.getTime() - dateA.getTime();
           });
           
-          setPendingAppointments(pending.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)));
-          setScheduledAppointments(scheduled.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)));
-          setPastAppointments(past);
+          setAppointments(sortedAppointments);
 
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -92,7 +74,31 @@ export function DashboardClient() {
     if (!user) return;
     fetchData();
   }, [user, toast]);
-  
+
+  const { pendingAppointments, scheduledAppointments, pastAppointments } = useMemo(() => {
+    const now = new Date();
+    const pending: Appointment[] = [];
+    const scheduled: Appointment[] = [];
+    const past: Appointment[] = [];
+
+    appointments.forEach(app => {
+        const appDateTime = new Date(`${app.date}T${app.time}`);
+        if (app.status === 'scheduled' && appDateTime >= now) {
+            scheduled.push(app);
+        } else {
+            if(app.status === 'scheduled' && appDateTime < now) {
+              pending.push(app);
+            }
+            past.push(app);
+        }
+    });
+
+    pending.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    scheduled.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    
+    return { pendingAppointments: pending, scheduledAppointments: scheduled, pastAppointments: past };
+  }, [appointments]);
+
   const filteredScheduled = useMemo(() => {
     return scheduledAppointments.filter(app => {
         if (scheduledFilter === 'all') return true;
@@ -101,9 +107,13 @@ export function DashboardClient() {
   }, [scheduledAppointments, scheduledFilter]);
 
   const filteredHistory = useMemo(() => {
+    // We filter from 'pastAppointments' which already contains 'pending' ones that are in the past
     return pastAppointments.filter(app => {
         if (historyFilter === 'all') return true;
-        return app.status === historyFilter;
+        if (historyFilter === 'completed' && app.status === 'completed') return true;
+        if (historyFilter === 'cancelled' && app.status === 'cancelled') return true;
+        if (historyFilter === 'no-show' && app.status === 'no-show') return true;
+        return false;
     });
   }, [pastAppointments, historyFilter]);
 
@@ -289,20 +299,20 @@ export function DashboardClient() {
                 <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                    <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
                         <TabsList className="grid w-full grid-cols-3 mb-4">
                             <TabsTrigger value="all">Todos</TabsTrigger>
                             <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
                             <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
                         </TabsList>
                     </Tabs>
-                {filteredScheduled.length > 0 ? (
-                    <div className="space-y-4">
-                    {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                    </div>
-                ) : (
-                    <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
-                )}
+                    {filteredScheduled.length > 0 ? (
+                        <div className="space-y-4">
+                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
+                    )}
                 </CardContent>
             </Card>
           )}
@@ -313,7 +323,7 @@ export function DashboardClient() {
                   <CardTitle className="flex items-center gap-2"><Icons.Calendar /> Histórico</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)}>
+                     <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
                         <TabsList className="grid w-full grid-cols-4 mb-4">
                             <TabsTrigger value="all">Todos</TabsTrigger>
                             <TabsTrigger value="completed">Realizados</TabsTrigger>
@@ -397,7 +407,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
-
-    

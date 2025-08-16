@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
@@ -17,7 +17,8 @@ import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface AppointmentWithBarber extends Appointment {
   barber: Barber | null;
@@ -33,8 +34,7 @@ async function getAllBarbers(): Promise<Barber[]> {
 export function ClientDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [scheduledAppointments, setScheduledAppointments] = useState<AppointmentWithBarber[]>([]);
-  const [pastAppointments, setPastAppointments] = useState<AppointmentWithBarber[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentWithBarber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   
@@ -65,23 +65,13 @@ export function ClientDashboard() {
           });
         }
         
-        const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
-
-        const now = new Date();
-        const scheduled: AppointmentWithBarber[] = [];
-        const past: AppointmentWithBarber[] = [];
-
-        sortedAppointments.forEach(app => {
-          const appDateTime = new Date(`${app.date}T${app.time}`);
-          if (app.status === 'scheduled' && appDateTime >= now) {
-            scheduled.push(app);
-          } else {
-            past.push(app);
-          }
+        const sortedAppointments = allAppointments.sort((a,b) => {
+            const dateA = new Date(`${a.date}T${a.time}`);
+            const dateB = new Date(`${b.date}T${b.time}`);
+            return dateB.getTime() - dateA.getTime();
         });
 
-        setScheduledAppointments(scheduled.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time)));
-        setPastAppointments(past);
+        setAppointments(sortedAppointments);
 
       } catch (error) {
         console.error("Error fetching client appointments: ", error);
@@ -96,6 +86,26 @@ export function ClientDashboard() {
     if (!user) return;
     fetchAppointments();
   }, [user]);
+
+  const { scheduledAppointments, pastAppointments } = useMemo(() => {
+    const now = new Date();
+    const scheduled: AppointmentWithBarber[] = [];
+    const past: AppointmentWithBarber[] = [];
+
+    appointments.forEach(app => {
+      const appDateTime = new Date(`${app.date}T${app.time}`);
+      if (app.status === 'scheduled' && appDateTime >= now) {
+        scheduled.push(app);
+      } else {
+        past.push(app);
+      }
+    });
+    
+    // Sort scheduled appointments from oldest to newest
+    scheduled.sort((a,b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+
+    return { scheduledAppointments: scheduled, pastAppointments: past };
+  }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
     return scheduledAppointments.filter(app => {
@@ -118,7 +128,7 @@ export function ClientDashboard() {
     const result = await cancelAppointmentAction(appointment.barber.id, appointment.id);
     if (result.success) {
         toast({ description: 'Agendamento cancelado com sucesso.' });
-        fetchAppointments(); // Re-fetch to re-organize lists
+        fetchAppointments(); // Re-fetch to update lists
     } else {
         toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
@@ -221,7 +231,7 @@ export function ClientDashboard() {
             </Link>
         </div>
         
-        {scheduledAppointments.length === 0 && pastAppointments.length === 0 ? (
+        {appointments.length === 0 ? (
              <Card className="bg-card border-border shadow-lg text-center py-16">
                 <CardContent>
                     <Icons.Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -233,7 +243,7 @@ export function ClientDashboard() {
                 {scheduledAppointments.length > 0 && (
                     <div>
                         <h2 className="text-2xl font-headline font-semibold mb-4">Próximos Agendamentos</h2>
-                        <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                        <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
                             <TabsList className="grid w-full grid-cols-3 mb-4">
                                 <TabsTrigger value="all">Todos</TabsTrigger>
                                 <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
@@ -254,7 +264,7 @@ export function ClientDashboard() {
                     <div>
                         <Separator className="my-8" />
                         <h2 className="text-2xl font-headline font-semibold mb-4">Histórico de Agendamentos</h2>
-                        <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)}>
+                         <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
                             <TabsList className="grid w-full grid-cols-4 mb-4">
                                 <TabsTrigger value="all">Todos</TabsTrigger>
                                 <TabsTrigger value="completed">Realizados</TabsTrigger>
@@ -276,7 +286,3 @@ export function ClientDashboard() {
      </div>
   );
 }
-
-    
-
-    
