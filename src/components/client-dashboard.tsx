@@ -104,7 +104,7 @@ export function ClientDashboard() {
     
     scheduled.sort((a,b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
-    return { scheduledAppointments, pastAppointments };
+    return { scheduledAppointments: scheduled, pastAppointments: past };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {

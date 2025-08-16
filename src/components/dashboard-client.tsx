@@ -36,7 +36,7 @@ export function DashboardClient() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled' | 'no-show'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled' | 'no-show' | 'scheduled'>('all');
 
   const fetchData = async () => {
     if (user) {
@@ -336,9 +336,10 @@ export function DashboardClient() {
               </CardHeader>
               <CardContent>
                 <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
+                  <TabsList className="grid w-full grid-cols-5 mb-4">
                       <TabsTrigger value="all">Todos</TabsTrigger>
                       <TabsTrigger value="completed">Realizados</TabsTrigger>
+                      <TabsTrigger value="scheduled">Pendentes</TabsTrigger>
                       <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
                       <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
                   </TabsList>
@@ -349,6 +350,15 @@ export function DashboardClient() {
                           </div>
                       ) : (
                           <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico.</p>
+                      )}
+                  </TabsContent>
+                   <TabsContent value="scheduled">
+                        {filteredHistory.length > 0 ? (
+                          <div className="space-y-4">
+                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                          </div>
+                      ) : (
+                          <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
                       )}
                   </TabsContent>
                   <TabsContent value="completed">
