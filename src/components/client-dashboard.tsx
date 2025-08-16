@@ -85,6 +85,7 @@ export function ClientDashboard() {
   useEffect(() => {
     if (!user) return;
     fetchAppointments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const { scheduledAppointments, pastAppointments } = useMemo(() => {
