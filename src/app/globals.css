@@ -1,76 +1,61 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 42 100% 50%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 283 100% 41.4%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 42 100% 50%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 210 60% 10%; /* Azul Meia-Noite */
+    --foreground: 220 13% 91%; /* Branco-Gelo */
+
+    --card: 210 60% 13%; /* Tom de card sutilmente mais claro */
+    --card-foreground: 220 13% 91%;
+
+    --popover: 210 60% 10%;
+    --popover-foreground: 220 13% 91%;
+
+    --primary: 285 19% 68%; /* Ameixa */
+    --primary-foreground: 210 60% 10%;
+
+    --secondary: 210 60% 20%;
+    --secondary-foreground: 220 13% 91%;
+
+    --muted: 210 60% 15%;
+    --muted-foreground: 220 13% 70%;
+
+    --accent: 33 99% 47%; /* Laranja Queimado */
+    --accent-foreground: 210 60% 10%;
+
+    --destructive: 348 53% 37%; /* Bordô */
+    --destructive-foreground: 220 13% 91%;
+
+    --border: 210 60% 25%;
+    --input: 210 60% 20%;
+    --ring: 285 19% 75%;
+    --radius: 0.75rem; /* Aumentei um pouco o arredondamento para um look mais moderno */
   }
+
+  /* Vamos manter o modo escuro idêntico por enquanto */
   .dark {
-    --background: 210 50% 11%; /* #0D1B2A */
-    --foreground: 210 10% 88%; /* #E0E1DD */
-    --card: 210 50% 14%; /* Slightly lighter than background */
-    --card-foreground: 210 10% 88%; /* #E0E1DD */
-    --popover: 210 50% 11%;
-    --popover-foreground: 210 10% 88%;
-    --primary: 284 15% 63%; /* #B392AC */
-    --primary-foreground: 210 50% 11%;
-    --secondary: 210 50% 18%;
-    --secondary-foreground: 210 10% 88%;
-    --muted: 210 50% 18%;
-    --muted-foreground: 210 10% 60%;
-    --accent: 34 99% 47%; /* #F18F01 */
-    --accent-foreground: 210 50% 11%;
-    --destructive: 349 53% 38%; /* #912F40 */
-    --destructive-foreground: 210 10% 88%;
-    --border: 210 50% 20%;
-    --input: 210 50% 22%;
-    --ring: 34 99% 47%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 210 50% 11%;
-    --sidebar-foreground: 210 10% 88%;
-    --sidebar-primary: 284 15% 63%;
-    --sidebar-primary-foreground: 210 50% 11%;
-    --sidebar-accent: 210 50% 18%;
-    --sidebar-accent-foreground: 210 10% 88%;
-    --sidebar-border: 210 50% 20%;
-    --sidebar-ring: 34 99% 47%;
+    --background: 210 60% 10%;
+    --foreground: 220 13% 91%;
+    --card: 210 60% 13%;
+    --card-foreground: 220 13% 91%;
+    --popover: 210 60% 10%;
+    --popover-foreground: 220 13% 91%;
+    --primary: 285 19% 68%;
+    --primary-foreground: 210 60% 10%;
+    --secondary: 210 60% 20%;
+    --secondary-foreground: 220 13% 91%;
+    --muted: 210 60% 15%;
+    --muted-foreground: 220 13% 70%;
+    --accent: 33 99% 47%;
+    --accent-foreground: 210 60% 10%;
+    --destructive: 348 53% 37%;
+    --destructive-foreground: 220 13% 91%;
+    --border: 210 60% 25%;
+    --input: 210 60% 20%;
+    --ring: 285 19% 75%;
   }
 }
 
@@ -80,32 +65,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  .animate-slide-in {
-    animation: slide-in 0.5s forwards;
-  }
-  @keyframes slide-in {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
-  .animate-fade-in {
-    animation: fade-in 0.3s forwards;
-  }
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
   }
 }
