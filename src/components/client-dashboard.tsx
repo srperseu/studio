@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, getDoc, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
@@ -28,35 +28,32 @@ export function ClientDashboard() {
         setIsLoading(true);
         try {
           // This query previously required a composite index. 
-          // The orderBy clause was removed to simplify the query and avoid the index requirement.
-          const appointmentsQuery = query(
-            collectionGroup(db, 'appointments'),
-            where('clientUid', '==', user.uid)
-          );
+          // To avoid the index requirement, we fetch all barbers first, then query each one.
+          // This is less efficient but works without extra Firebase console configuration.
+          const barbersQuery = query(collection(db, 'barbers'), where('profileComplete', '==', true));
+          const barbersSnapshot = await getDocs(barbersQuery);
+          const allAppointments: AppointmentWithBarber[] = [];
 
-          const querySnapshot = await getDocs(appointmentsQuery);
-          const appointmentsData: AppointmentWithBarber[] = [];
-          
-          // Use Promise.all to fetch barber data in parallel for better performance
-          const barberPromises = querySnapshot.docs.map(async (appointmentDoc) => {
-            const appointment = { id: appointmentDoc.id, ...appointmentDoc.data() } as Appointment;
-            const barberId = appointmentDoc.ref.parent.parent?.id;
-            let barberData: Barber | null = null;
+          for (const barberDoc of barbersSnapshot.docs) {
+            const barber = { id: barberDoc.id, ...barberDoc.data() } as Barber;
+            const appointmentsQuery = query(
+              collection(db, `barbers/${barber.id}/appointments`),
+              where('clientUid', '==', user.uid)
+            );
+            const appointmentsSnapshot = await getDocs(appointmentsQuery);
             
-            if(barberId) {
-                const barberRef = doc(db, 'barbers', barberId);
-                const barberSnap = await getDoc(barberRef);
-                if(barberSnap.exists()) {
-                    barberData = { id: barberSnap.id, ...barberSnap.data() } as Barber;
-                }
-            }
-            return { ...appointment, barber: barberData };
-          });
+            appointmentsSnapshot.forEach(appointmentDoc => {
+              allAppointments.push({
+                ...(appointmentDoc.data() as Appointment),
+                id: appointmentDoc.id,
+                barber: barber,
+              });
+            });
+          }
 
-          const resolvedAppointments = await Promise.all(barberPromises);
           // Sort appointments client-side after fetching
-          resolvedAppointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setAppointments(resolvedAppointments);
+          allAppointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setAppointments(allAppointments);
 
         } catch (error) {
           console.error("Error fetching client appointments: ", error);
