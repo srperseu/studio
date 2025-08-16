@@ -4,49 +4,59 @@
 
 @layer base {
   :root {
-    --background: 50 43% 91%;    /* #F4F1DE (Areia) */
-    --foreground: 227 10% 24%;   /* #3D405B (Grafite) */
-    --card: 50 43% 94%;
-    --card-foreground: 227 10% 24%;
-    --popover: 50 43% 91%;
-    --popover-foreground: 227 10% 24%;
-    --primary: 153 23% 62%;     /* #81B29A (Verde Sálvia) */
-    --primary-foreground: 227 10% 15%;
-    --secondary: 50 43% 85%;
-    --secondary-foreground: 227 10% 24%;
-    --muted: 50 43% 85%;
-    --muted-foreground: 227 10% 40%;
-    --accent: 14 72% 62%;       /* #E07A5F (Terracota) */
-    --accent-foreground: 227 10% 15%;
-    --destructive: 348 97% 42%;  /* #D90429 (Vinho) */
-    --destructive-foreground: 50 43% 91%;
-    --border: 50 43% 80%;
-    --input: 50 43% 80%;
-    --ring: 153 23% 62%;
-    --radius: 0.75rem;
+    --background: 0 0% 100%; /* Branco */
+    --foreground: 0 0% 7%;   /* Preto/Grafite para texto */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    --primary: 0 84.2% 60.2%; /* Vermelho Clássico */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 84.2% 60.2%; /* Vermelho como acento também */
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 84.2% 60.2%;
+
+    --radius: 0.5rem;
   }
 
+  /* O modo escuro não se aplica a este design, mas mantemos por padrão */
   .dark {
-    /* Mantendo o tema escuro como backup, caso você queira usá-lo no futuro */
-    --background: 227 10% 24%;
-    --foreground: 50 43% 91%;
-    --card: 227 10% 28%;
-    --card-foreground: 50 43% 91%;
-    --popover: 227 10% 24%;
-    --popover-foreground: 50 43% 91%;
-    --primary: 153 23% 62%;
-    --primary-foreground: 227 10% 15%;
-    --secondary: 50 43% 85%;
-    --secondary-foreground: 227 10% 24%;
-    --muted: 50 43% 85%;
-    --muted-foreground: 227 10% 40%;
-    --accent: 14 72% 62%;
-    --accent-foreground: 227 10% 15%;
-    --destructive: 348 97% 42%;
-    --destructive-foreground: 50 43% 91%;
-    --border: 50 43% 80%;
-    --input: 50 43% 80%;
-    --ring: 153 23% 62%;
+    /* Repetimos as mesmas cores para forçar o tema claro */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 0 84.2% 60.2%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 84.2% 60.2%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 84.2% 60.2%;
   }
 }
 

@@ -11,7 +11,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['"Inter"', 'sans-serif'],
-        headline: ['"Playfair Display"', 'serif'], // Trocamos para a fonte com serifa
+        headline: ['"Oswald"', 'sans-serif'], // Trocamos para a Oswald
         code: ['monospace'],
       },
       colors: {

@@ -124,14 +124,14 @@ export function DashboardClient() {
               {appointments.length > 0 ? (
                 <div className="space-y-4">
                   {appointments.map(app => (
-                    <div key={app.id} className="bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div key={app.id} className="bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4 border-primary">
                       <div className="flex-grow">
                         <p className="font-bold text-lg text-primary">{app.clientName}</p>
                         <p className="text-muted-foreground">{app.service}</p>
                         <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
                       </div>
                       <div className="flex flex-col sm:items-end gap-2">
-                         <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
+                         <Badge variant={app.type === 'inShop' ? 'default' : 'destructive'} className={app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90'}>{app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}</Badge>
                          <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isGeneratingReminder === app.id} className="bg-accent hover:bg-accent/90">
                            {isGeneratingReminder === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                            Lembrete
