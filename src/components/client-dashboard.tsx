@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
@@ -51,9 +51,8 @@ export function ClientDashboard() {
         for (const barber of allBarbers) {
           const appointmentsQuery = query(
             collection(db, 'barbers', barber.id, 'appointments'),
-            where('clientUid', '==', user.uid),
-            orderBy('date', 'desc'),
-            orderBy('time', 'desc')
+            where('clientUid', '==', user.uid)
+            // Removido o orderBy para evitar erro de índice. A ordenação será feita no cliente.
           );
 
           const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -66,13 +65,16 @@ export function ClientDashboard() {
           });
         }
         
+        // Ordenação feita no cliente
+        const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time));
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const scheduled: AppointmentWithBarber[] = [];
         const past: AppointmentWithBarber[] = [];
 
-        allAppointments.forEach(app => {
+        sortedAppointments.forEach(app => {
           const appDate = new Date(app.date + 'T00:00:00'); // Use T00 to avoid timezone issues with date compare
           if (app.status === 'cancelled' || appDate < today) {
             past.push(app);
