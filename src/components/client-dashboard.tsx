@@ -230,23 +230,25 @@ export function ClientDashboard() {
             </Card>
         ) : (
             <div className="space-y-10">
-                <div>
-                    <h2 className="text-2xl font-headline font-semibold mb-4">Próximos Agendamentos</h2>
-                    <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
-                        <TabsList className="grid w-full grid-cols-3 mb-4">
-                            <TabsTrigger value="all">Todos</TabsTrigger>
-                            <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                            <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                    {filteredScheduled.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
-                    )}
-                </div>
+                {scheduledAppointments.length > 0 && (
+                    <div>
+                        <h2 className="text-2xl font-headline font-semibold mb-4">Próximos Agendamentos</h2>
+                        <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                                <TabsTrigger value="all">Todos</TabsTrigger>
+                                <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                                <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        {filteredScheduled.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
+                        )}
+                    </div>
+                )}
                 
                 {pastAppointments.length > 0 && (
                     <div>
@@ -274,3 +276,5 @@ export function ClientDashboard() {
      </div>
   );
 }
+
+    

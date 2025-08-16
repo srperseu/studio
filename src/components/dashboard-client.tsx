@@ -65,13 +65,12 @@ export function DashboardClient() {
           sortedAppointments.forEach(app => {
               const appDateTime = new Date(`${app.date}T${app.time}`);
               
-              if (app.status === 'scheduled') {
-                if (appDateTime < now) {
-                  pending.push(app);
-                } else {
+              if (app.status === 'scheduled' && appDateTime >= now) {
                   scheduled.push(app);
-                }
               } else {
+                  if(app.status === 'scheduled' && appDateTime < now) {
+                    pending.push(app);
+                  }
                   past.push(app);
               }
           });
@@ -102,10 +101,16 @@ export function DashboardClient() {
   }, [scheduledAppointments, scheduledFilter]);
 
   const filteredHistory = useMemo(() => {
-    return pastAppointments.filter(app => {
+    // We filter from the past appointments, but also include the pending ones in the history view.
+    const allHistory = [...pastAppointments];
+    return allHistory.filter(app => {
         if (historyFilter === 'all') return true;
-        return app.status === historyFilter;
-    });
+         // Special case for 'pending' which is a 'scheduled' in the past
+        if (historyFilter === 'completed' && app.status === 'completed') return true;
+        if (historyFilter === 'cancelled' && app.status === 'cancelled') return true;
+        if (historyFilter === 'no-show' && app.status === 'no-show') return true;
+        return false;
+    }).sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
   }, [pastAppointments, historyFilter]);
 
 
@@ -284,27 +289,29 @@ export function DashboardClient() {
             </Card>
           )}
 
-          <Card className="bg-card border-border shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                        <TabsTrigger value="all">Todos</TabsTrigger>
-                        <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                        <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-              {filteredScheduled.length > 0 ? (
-                <div className="space-y-4">
-                  {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
-              )}
-            </CardContent>
-          </Card>
+          {scheduledAppointments.length > 0 && (
+             <Card className="bg-card border-border shadow-lg">
+                <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)}>
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsTrigger value="all">Todos</TabsTrigger>
+                            <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                            <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                {filteredScheduled.length > 0 ? (
+                    <div className="space-y-4">
+                    {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
+                )}
+                </CardContent>
+            </Card>
+          )}
 
           {pastAppointments.length > 0 && (
              <Card className="bg-card border-border shadow-lg">
@@ -396,3 +403,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
