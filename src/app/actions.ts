@@ -55,7 +55,7 @@ export async function generateReminderAction(appointmentDetails: ReminderDetails
   }
 }
 
-export async function createAppointment(
+export async function createBooking(
   barberId: string,
   clientUid: string,
   clientName: string,
@@ -92,3 +92,4 @@ export async function createAppointment(
     return { success: false, message: 'Erro ao realizar o agendamento.' };
   }
 }
+
