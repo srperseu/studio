@@ -1,26 +1,19 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra para a consulta collectionGroup na coleção 'appointments'.
-    // Permite que um cliente liste (consulte) seus próprios agendamentos em todas as agendas.
-    // Esta consulta requer um índice composto no campo 'clientUid'.
-    match /{path=**}/appointments/{appointmentId} {
-       allow read: if request.auth.uid == resource.data.clientUid;
-    }
-
     // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      // Qualquer pessoa pode ler o perfil de um barbeiro se estiver completo (para agendamento).
-      allow get: if resource.data.profileComplete == true;
+      // Qualquer pessoa pode ler o perfil de um barbeiro se estiver completo.
+      // O próprio barbeiro pode ler seu perfil sempre.
+      allow get: if resource.data.profileComplete == true || request.auth.uid == barberId;
 
       // Qualquer usuário logado pode listar os barbeiros para a página de agendamento.
       allow list: if request.auth != null;
 
       // Apenas o barbeiro pode ATUALIZAR ou DELETAR seu próprio perfil.
-      // A permissão de create foi removida daqui para não bloquear a criação na subcoleção.
+      // A permissão de create é omitida para que a regra da subcoleção seja avaliada.
       allow update, delete: if request.auth.uid == barberId;
 
       // --- REGRAS PARA AGENDAMENTOS (SUBCOLEÇÃO DE BARBEIROS) ---
@@ -28,15 +21,14 @@ service cloud.firestore {
         // O barbeiro (dono da agenda) ou o cliente (dono do agendamento) podem ler um agendamento específico.
         allow get: if request.auth.uid == barberId || request.auth.uid == resource.data.clientUid;
 
-        // Um cliente só pode CRIAR um agendamento para si mesmo.
-        // A requisição é permitida porque a regra de 'write' no pai foi dividida.
+        // Regra para collectionGroup: um cliente pode listar seus próprios agendamentos
+        allow list: if request.auth.uid == request.query.where.clientUid;
+        
+        // Um cliente só pode criar um agendamento para si mesmo.
         allow create: if request.auth.uid == request.resource.data.clientUid;
 
         // Apenas o barbeiro pode atualizar ou deletar um agendamento.
         allow update, delete: if request.auth.uid == barberId;
-         
-        // Barbeiros podem listar todos os agendamentos em sua própria agenda.
-        allow list: if request.auth.uid == barberId;
       }
     }
 
