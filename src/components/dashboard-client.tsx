@@ -91,6 +91,7 @@ export function DashboardClient() {
     });
 
     scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+    pastList.sort((a,b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
     
     return { scheduledAppointments: scheduledList, pastAppointments: pastList };
   }, [appointments]);
@@ -457,5 +458,7 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
 
     
