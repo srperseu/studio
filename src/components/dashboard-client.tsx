@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
+import { getDocs, doc, collection, query } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
 
@@ -55,7 +55,7 @@ export function DashboardClient() {
           const allAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => allAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
           
-          const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time));
+          const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(b.date).getTime() || b.time.localeCompare(a.time));
 
           const now = new Date();
           const pending: Appointment[] = [];
@@ -92,7 +92,7 @@ export function DashboardClient() {
   useEffect(() => {
     if (!user) return;
     fetchData();
-  }, [user]);
+  }, [user, toast]);
   
   const filteredScheduled = useMemo(() => {
     return scheduledAppointments.filter(app => {
@@ -396,5 +396,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    

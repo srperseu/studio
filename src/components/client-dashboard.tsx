@@ -72,14 +72,9 @@ export function ClientDashboard() {
         const past: AppointmentWithBarber[] = [];
 
         sortedAppointments.forEach(app => {
-          if (app.status === 'scheduled') {
-            const appDateTime = new Date(`${app.date}T${app.time}`);
-            if (appDateTime >= now) {
-                scheduled.push(app);
-            } else {
-                // Barbeiro ainda não confirmou, mas para o cliente já está no passado
-                past.push(app);
-            }
+          const appDateTime = new Date(`${app.date}T${app.time}`);
+          if (app.status === 'scheduled' && appDateTime >= now) {
+            scheduled.push(app);
           } else {
             past.push(app);
           }
@@ -98,6 +93,7 @@ export function ClientDashboard() {
   };
 
   useEffect(() => {
+    if (!user) return;
     fetchAppointments();
   }, [user]);
 
@@ -111,17 +107,7 @@ export function ClientDashboard() {
   const filteredHistory = useMemo(() => {
     return pastAppointments.filter(app => {
         if (historyFilter === 'all') return true;
-        if (historyFilter === 'completed') return app.status === 'completed';
-        if (historyFilter === 'cancelled') return app.status === 'cancelled';
-        if (historyFilter === 'no-show') return app.status === 'no-show';
-        
-        // Inclui agendamentos 'scheduled' que já passaram (barbeiro não confirmou)
-        if (historyFilter === 'completed') {
-             const appDateTime = new Date(`${app.date}T${app.time}`);
-             return app.status === 'scheduled' && appDateTime < new Date();
-        }
-
-        return false;
+        return app.status === historyFilter;
     });
   }, [pastAppointments, historyFilter]);
 
