@@ -1,37 +1,45 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // --- FUNÇÕES AUXILIARES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Barbers: Publicly readable, but only the owner can write.
+    // --- REGRAS PARA BARBEIROS ---
     match /barbers/{barberId} {
-      allow read: if true;
-      allow write: if isOwner(barberId);
-
-      // Appointments: Only the barber can manage their own schedule.
-      // The client who owns the appointment can also read it.
-      match /appointments/{appointmentId} {
-        allow get: if isOwner(barberId) || isOwner(resource.data.clientUid);
-        allow list: if isOwner(barberId); // Barber can list all their appointments
-        allow create: if isOwner(request.resource.data.clientUid); // A user can only create an appointment for themselves
-        allow update, delete: if isOwner(barberId); // Only the barber can modify appointments
-      }
+      // Leitura: Perfis completos são públicos para permitir agendamentos.
+      // Apenas o dono pode ler seu perfil se não estiver completo.
+      allow read: if resource.data.profileComplete == true || isOwner(barberId);
+      // Escrita: Apenas o barbeiro dono pode criar ou atualizar seu próprio perfil.
+      allow create, update: if isOwner(barberId);
+      // Deleção: Ninguém pode deletar um perfil de barbeiro pelo app.
+      allow delete: if false;
     }
 
-    // Clients: Only the owner can read or write their own data.
+    // --- REGRAS PARA CLIENTES ---
     match /clients/{clientId} {
-      allow read, write: if isOwner(clientId);
+      // Gerenciamento: Um cliente pode ler, criar e atualizar seu próprio perfil.
+      allow read, create, update: if isOwner(clientId);
+      // Deleção: Ninguém pode deletar um perfil de cliente pelo app.
+      allow delete: if false;
     }
-    
-    // This rule is specifically for the client's dashboard `collectionGroup` query.
-    // It allows a user to query the 'appointments' collection group
-    // IF AND ONLY IF the query includes a `where("clientUid", "==", userId)` clause.
-    match /{path=**}/appointments/{appointmentId} {
-      allow list: if request.auth != null && request.query.get("clientUid") == request.auth.uid;
+
+    // --- REGRAS PARA CONSULTA EM GRUPO ---
+    // Esta regra permite a consulta collectionGroup na página do cliente
+    match /barbers/{barberId}/appointments/{appointmentId} {
+      // Um cliente só pode criar um agendamento para si mesmo.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.clientUid;
+      // O barbeiro pode gerenciar tudo. O cliente pode ler seus próprios agendamentos.
+      allow read: if isOwner(barberId) || isOwner(resource.data.clientUid);
+      // Apenas o barbeiro pode modificar/deletar
+      allow update, delete: if isOwner(barberId);
     }
   }
 }
