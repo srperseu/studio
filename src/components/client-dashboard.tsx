@@ -246,8 +246,26 @@ export function ClientDashboard() {
                                 <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
                                 <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
                             </TabsList>
-                             <TabsContent value={scheduledFilter}>
+                             <TabsContent value="all">
                                 {filteredScheduled.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {scheduledAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="inShop">
+                                 {filteredScheduled.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
+                                )}
+                            </TabsContent>
+                             <TabsContent value="atHome">
+                                 {filteredScheduled.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
                                     </div>
@@ -270,7 +288,34 @@ export function ClientDashboard() {
                                 <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
                                 <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
                             </TabsList>
-                           <TabsContent value={historyFilter}>
+                           <TabsContent value="all">
+                                {filteredHistory.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {pastAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="completed">
+                                {filteredHistory.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="cancelled">
+                                {filteredHistory.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="no-show">
                                 {filteredHistory.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
@@ -287,3 +332,5 @@ export function ClientDashboard() {
      </div>
   );
 }
+
+    
