@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
+import { getDocs, doc, collection, query } from 'firebase/firestore'; // Removido orderBy
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction } from '@/app/actions';
 
@@ -48,18 +48,22 @@ export function DashboardClient() {
             setBarberData({ id: barberSnap.id, ...barberSnap.data() } as Barber);
           }
 
-          const q = query(collection(db, `barbers/${user.uid}/appointments`), orderBy('date', 'desc'), orderBy('time', 'desc'));
+          // Consulta sem ordenação para evitar erro de índice
+          const q = query(collection(db, `barbers/${user.uid}/appointments`));
           const appointmentsSnapshot = await getDocs(q);
           const allAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => allAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
           
+          // Ordenação feita no cliente
+          const sortedAppointments = allAppointments.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.time.localeCompare(a.time));
+
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
           const scheduled: Appointment[] = [];
           const past: Appointment[] = [];
 
-          allAppointments.forEach(app => {
+          sortedAppointments.forEach(app => {
               const appDate = new Date(app.date + 'T00:00:00'); // Use T00 to avoid timezone issues with date compare
               if (app.status === 'cancelled' || appDate < today) {
                   past.push(app);
@@ -338,3 +342,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
