@@ -102,10 +102,9 @@ export function ClientDashboard() {
       }
     });
     
-    // Sort scheduled appointments from oldest to newest
     scheduled.sort((a,b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
-    return { scheduledAppointments: scheduled, pastAppointments: past };
+    return { scheduledAppointments, pastAppointments };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
@@ -249,7 +248,7 @@ export function ClientDashboard() {
                              <TabsContent value="all">
                                 {filteredScheduled.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {scheduledAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado para este filtro.</p>
@@ -291,7 +290,7 @@ export function ClientDashboard() {
                            <TabsContent value="all">
                                 {filteredHistory.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {pastAppointments.map(app => <AppointmentCard key={app.id} app={app} />)}
+                                        {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
@@ -332,5 +331,3 @@ export function ClientDashboard() {
      </div>
   );
 }
-
-    

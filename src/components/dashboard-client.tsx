@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -96,7 +97,7 @@ export function DashboardClient() {
     pending.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${a.time}`).getTime());
     scheduled.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     
-    return { pendingAppointments: pending, scheduledAppointments: scheduled, pastAppointments: past };
+    return { pendingAppointments, scheduledAppointments, pastAppointments };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
