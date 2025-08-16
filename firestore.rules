@@ -3,33 +3,10 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    match /barbers/{barberId} {
-      // Permitir que qualquer pessoa leia/liste perfis de barbeiros é seguro 
-      // e necessário para a página de agendamento.
-      allow read, list: if true;
-
-      // Apenas o próprio barbeiro pode atualizar ou deletar seu perfil.
-      allow update, delete: if request.auth.uid == barberId;
-
-      match /appointments/{appointmentId} {
-        // Um cliente autenticado só pode criar um agendamento para si mesmo.
-        allow create: if request.auth.uid != null && request.auth.uid == request.resource.data.clientUid;
-        
-        // O barbeiro pode gerenciar todos os agendamentos em sua agenda.
-        allow read, update, delete: if request.auth.uid == barberId;
-      }
-    }
-
-    match /clients/{clientId} {
-      // Um cliente só pode ler e atualizar seus próprios dados.
-      allow read, update: if request.auth.uid == clientId;
-    }
-    
-    // Regra para o grupo de coleção de agendamentos, permitindo que um cliente
-    // leia todos os seus agendamentos, independentemente do barbeiro.
-    match /{path=**}/appointments/{appointmentId} {
-      allow read: if get(/databases/$(database)/documents/clients/$(request.auth.uid)).data.uid == resource.data.clientUid;
+    // ATENÇÃO: Regra insegura apenas para fins de depuração.
+    // Permite que qualquer pessoa leia e escreva em todo o banco de dados.
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
