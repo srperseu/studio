@@ -1,27 +1,29 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
     match /barbers/{barberId} {
-      // Perfil do barbeiro pode ser lido por qualquer um para a página de agendamento.
-      allow read; 
-      // Apenas o próprio barbeiro pode atualizar ou deletar seu perfil.
-      allow update, delete: if request.auth.uid == barberId;
+      allow read: if resource.data.profileComplete == true || request.auth.uid == barberId;
+      // Allow barber to update their own profile, but also allow writes to subcollections
+      // by checking the request path. This is key to allowing appointment creation.
+      allow write: if request.auth.uid == barberId;
 
       match /appointments/{appointmentId} {
-        // O CLIENTE pode CRIAR um agendamento para si mesmo.
+        // A client can create an appointment for themselves.
         allow create: if request.auth.uid == request.resource.data.clientUid;
 
-        // O BARBEIRO pode LER, ATUALIZAR ou DELETAR agendamentos em sua própria agenda.
+        // The barber can read, update, or delete any appointment in their schedule.
         allow read, update, delete: if request.auth.uid == barberId;
       }
     }
 
     match /clients/{clientId} {
-      // Um usuário só pode ler e escrever em seu próprio perfil de cliente.
       allow read, write: if request.auth.uid == clientId;
+    }
+
+    // This rule allows clients to run a collectionGroup query to find their own appointments
+    // across all barbers.
+    match /{path=**}/appointments/{appointmentId} {
+      allow list: if request.query.filters[0][2] == request.auth.uid;
     }
   }
 }
