@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Icons } from '@/components/icons';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function SignUpClientPage() {
   const router = useRouter();
@@ -55,8 +55,8 @@ export default function SignUpClientPage() {
   
   if (step === 'verify') {
     return (
-       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-         <Card className="mx-auto max-w-sm text-center">
+       <main className="flex min-h-screen w-full items-center justify-center bg-background p-4 font-body">
+         <Card className="w-full max-w-sm text-center border-none shadow-lg">
             <CardHeader>
                 <CardTitle className="text-2xl">Verifique seu E-mail</CardTitle>
             </CardHeader>
@@ -70,13 +70,13 @@ export default function SignUpClientPage() {
                 </Button>
             </CardContent>
          </Card>
-       </div>
+       </main>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="mx-auto max-w-sm">
+    <main className="flex min-h-screen w-full items-center justify-center bg-background p-4 font-body">
+      <Card className="w-full max-w-sm border-none shadow-lg">
         <CardHeader>
           <CardTitle className="text-xl">Cadastro de Cliente</CardTitle>
           <CardDescription>Crie sua conta para agendar seu horário.</CardDescription>
@@ -137,8 +137,8 @@ export default function SignUpClientPage() {
               />
             </div>
             {error && (
-              <div className="text-sm text-destructive">
-                <p>{error}</p>
+              <Alert variant="destructive" className="text-sm">
+                <AlertDescription>{error}</AlertDescription>
                 {error.includes('em uso') && (
                   <div className='mt-2'>
                     <Link href="/" className="underline font-semibold hover:text-primary">
@@ -146,7 +146,7 @@ export default function SignUpClientPage() {
                     </Link>
                   </div>
                 )}
-              </div>
+              </Alert>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? <Icons.Spinner /> : 'Criar conta'}
@@ -160,6 +160,6 @@ export default function SignUpClientPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,9 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (loading) return;
-    // If user is logged in, verified, and on the login page, redirect them.
     if (user && user.emailVerified) {
-        // This simple redirect is enough. useAuthGuard on destination will handle roles.
         router.replace('/dashboard');
     }
   }, [user, loading, router]);
@@ -42,10 +40,9 @@ export default function LoginPage() {
       if (userCredential.user && !userCredential.user.emailVerified) {
         setShowVerificationLink(true);
         setError("Seu e-mail ainda não foi verificado. Clique no link abaixo para reenviar o e-mail de verificação.");
-        setIsSubmitting(false); // Stop submission process
+        setIsSubmitting(false);
         return;
       }
-      // Successful login will be handled by the useEffect
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
         setError('Credenciais inválidas. Verifique seu e-mail e senha.');
@@ -53,7 +50,6 @@ export default function LoginPage() {
         setError('Ocorreu um erro inesperado. Tente novamente.');
       }
     } finally {
-      // Only set to false if it wasn't already set by the verification check
       if (!showVerificationLink) {
         setIsSubmitting(false);
       }
@@ -63,7 +59,6 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // Successful login will be handled by the useEffect
     } catch (error: any) {
       setError(`Erro ao logar com Google: ${error.message}`);
     }
@@ -91,12 +86,12 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4 font-body">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-6">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
             <h1 className="text-5xl font-bold font-headline text-primary">BarberFlow</h1>
             <p className="text-muted-foreground mt-2">Faça login ou cadastre-se para continuar</p>
         </div>
-        <Card className="bg-card border-border shadow-lg">
+        <Card className="bg-card border-none shadow-lg">
           <CardHeader>
             <CardTitle>Login</CardTitle>
           </CardHeader>

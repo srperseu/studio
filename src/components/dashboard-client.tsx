@@ -80,10 +80,14 @@ export function DashboardClient() {
     const scheduledList: Appointment[] = [];
     const pastList: Appointment[] = [];
     
+    // This gives midnight in the local timezone
     const todayTimestamp = new Date().setHours(0, 0, 0, 0);
 
     appointments.forEach(app => {
-      const appDateTimestamp = new Date(app.date).setHours(0, 0, 0, 0);
+      // Create a date object from the 'YYYY-MM-DD' string in the local timezone
+      const [year, month, day] = app.date.split('-').map(Number);
+      const appDate = new Date(year, month - 1, day);
+      const appDateTimestamp = appDate.getTime();
       
       if (app.status === 'scheduled' && appDateTimestamp >= todayTimestamp) {
         scheduledList.push(app);
@@ -102,7 +106,9 @@ export function DashboardClient() {
     const todayTimestamp = new Date().setHours(0, 0, 0, 0);
     return pastAppointments
       .filter(app => {
-        const appDateTimestamp = new Date(app.date).setHours(0,0,0,0);
+        const [year, month, day] = app.date.split('-').map(Number);
+        const appDate = new Date(year, month - 1, day);
+        const appDateTimestamp = appDate.getTime();
         return app.status === 'scheduled' && appDateTimestamp < todayTimestamp;
       })
       .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
@@ -439,7 +445,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
-
-    
