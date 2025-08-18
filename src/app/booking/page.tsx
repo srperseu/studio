@@ -134,7 +134,7 @@ export default function ClientBookingPage() {
            {user ? (
             <>
                 <Link href="/dashboard/client">
-                    <Button variant="outline">
+                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
                         Meus Agendamentos &rarr;
                     </Button>
                 </Link>
