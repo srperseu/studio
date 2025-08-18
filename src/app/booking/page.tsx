@@ -108,24 +108,6 @@ export default function ClientBookingPage() {
       setSelectedBarber(null);
   }
 
-  const mapLocations: MapLocation[] = barbers
-  .filter(barber => barber.coordinates)
-  .map(barber => ({
-      id: barber.id,
-      position: barber.coordinates!,
-      label: barber.fullName,
-      type: 'barber'
-  }));
-
-  if (clientCoords) {
-      mapLocations.push({
-          id: 'client',
-          position: clientCoords,
-          label: 'Sua Localização',
-          type: 'client'
-      })
-  }
-
   if (authLoading || isLoading || status === 'validating') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
@@ -176,29 +158,27 @@ export default function ClientBookingPage() {
         ) : (
           <>
             <PageHeader />
-            <div className="h-80 md:h-96 rounded-lg overflow-hidden my-8 border shadow-lg">
-                <BarbersMap apiKey={mapsApiKey} locations={mapLocations} center={clientCoords} zoom={13} />
+            
+            <div className="my-8">
+                {barbers.length === 0 ? (
+                    <div className="text-center py-16">
+                        <Icons.Scissors className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h2 className="mt-4 text-2xl font-semibold">Nenhum Barbeiro Disponível</h2>
+                        <p className="text-muted-foreground mt-2">
+                            Volte mais tarde ou peça para um barbeiro se cadastrar na plataforma.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {barbers.map(barber => (
+                            <BarberCard key={barber.id} barber={barber} onSelect={handleSelectBarber} />
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {barbers.length === 0 ? (
-                <div className="text-center py-16">
-                    <Icons.Scissors className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h2 className="mt-4 text-2xl font-semibold">Nenhum Barbeiro Disponível</h2>
-                    <p className="text-muted-foreground mt-2">
-                        Volte mais tarde ou peça para um barbeiro se cadastrar na plataforma.
-                    </p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {barbers.map(barber => (
-                        <BarberCard key={barber.id} barber={barber} onSelect={handleSelectBarber} />
-                    ))}
-                </div>
-            )}
           </>
         )}
       </div>
     </main>
   );
 }
-
