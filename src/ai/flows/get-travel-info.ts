@@ -9,12 +9,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getDistanceMatrix, GetTravelInfoOutputSchema as ToolOutputSchema } from '../tools/google-maps';
 
-export const GetTravelInfoOutputSchema = ToolOutputSchema;
-export type GetTravelInfoOutput = z.infer<typeof GetTravelInfoOutputSchema>;
-
-
+// Schemas and Types
 export const GetTravelInfoInputSchema = z.object({
   originLat: z.number().describe("The latitude of the origin."),
   originLng: z.number().describe("The longitude of the origin."),
@@ -23,11 +19,70 @@ export const GetTravelInfoInputSchema = z.object({
 });
 export type GetTravelInfoInput = z.infer<typeof GetTravelInfoInputSchema>;
 
+export const GetTravelInfoOutputSchema = z.object({
+    distance: z.string().describe("The total distance of the route."),
+    duration: z.string().describe("The total duration of the route."),
+});
+export type GetTravelInfoOutput = z.infer<typeof GetTravelInfoOutputSchema>;
 
+
+// Helper function to call Google Maps API
+async function fetchDistanceMatrix(origin: string, destination: string, apiKey: string) {
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${apiKey}&units=metric&language=pt-BR`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
+      return {
+        distance: data.rows[0].elements[0].distance.text,
+        duration: data.rows[0].elements[0].duration.text,
+      };
+    }
+    console.error('Distance Matrix API Error:', data.error_message || data.status);
+    return null;
+  } catch (error) {
+    console.error('Error fetching distance matrix data:', error);
+    return null;
+  }
+}
+
+// Genkit Tool Definition (local to this file)
+const getDistanceMatrix = ai.defineTool(
+  {
+    name: 'getDistanceMatrix',
+    description: 'Get the travel distance and duration between an origin and a destination.',
+    inputSchema: z.object({
+      originLat: z.number(),
+      originLng: z.number(),
+      destinationLat: z.number(),
+      destinationLng: z.number(),
+    }),
+    outputSchema: GetTravelInfoOutputSchema,
+  },
+  async (input) => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      throw new Error('Google Maps API key is not configured.');
+    }
+    const origin = `${input.originLat},${input.originLng}`;
+    const destination = `${input.destinationLat},${input.destinationLng}`;
+    
+    const result = await fetchDistanceMatrix(origin, destination, apiKey);
+    if (!result) {
+      throw new Error('Failed to retrieve distance matrix data.');
+    }
+
+    return result;
+  }
+);
+
+
+// Exported wrapper function
 export async function getTravelInfo(input: GetTravelInfoInput): Promise<GetTravelInfoOutput> {
   return getTravelInfoFlow(input);
 }
 
+// Genkit Flow Definition
 const getTravelInfoFlow = ai.defineFlow(
   {
     name: 'getTravelInfoFlow',
