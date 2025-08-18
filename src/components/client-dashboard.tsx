@@ -93,11 +93,12 @@ export function ClientDashboard() {
     const pastList: AppointmentWithBarber[] = [];
 
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     appointments.forEach(app => {
-      const appDateTime = new Date(`${app.date}T${app.time}`);
+      const appDate = new Date(app.date + 'T00:00:00');
       
-      if (app.status === 'scheduled' && appDateTime >= now) {
+      if (app.status === 'scheduled' && appDate >= today) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -135,7 +136,10 @@ export function ClientDashboard() {
   }
 
   const AppointmentCard = ({ app }: { app: AppointmentWithBarber}) => {
-    const isPast = new Date(`${app.date}T${app.time}`) < new Date();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const appDate = new Date(app.date + 'T00:00:00');
+    const isPast = appDate < today;
     const isActionable = app.status === 'scheduled' && !isPast;
     
     const getStatusBadge = () => {
