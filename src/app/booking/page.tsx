@@ -4,12 +4,17 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Barber, Client } from '@/lib/types';
+import type { Barber, Client, GeoPoint } from '@/lib/types';
 import { BookingForm } from '@/components/booking-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarberCard } from '@/components/barber-card';
+import { BarbersMap, type MapLocation } from '@/components/barbers-map';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Icons } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { UserNav } from '@/components/user-nav';
+import Link from 'next/link';
+import { Header } from '@/components/header';
 
 // Haversine formula to calculate distance between two lat/lng points
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -40,6 +45,11 @@ export default function ClientBookingPage() {
   
   const [barbers, setBarbers] = useState<BarberWithDistance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedBarber, setSelectedBarber] = useState<BarberWithDistance | null>(null);
+  const [clientCoords, setClientCoords] = useState<GeoPoint | null>(null);
+
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+
 
   useEffect(() => {
     async function fetchAndSortBarbers() {
@@ -47,13 +57,14 @@ export default function ClientBookingPage() {
       setIsLoading(true);
 
       // 1. Fetch client data to get their coordinates
-      let clientCoords = null;
+      let clientLocation = null;
       const clientRef = doc(db, 'clients', user.uid);
       const clientSnap = await getDoc(clientRef);
       if (clientSnap.exists()) {
         const clientData = clientSnap.data() as Client;
         if (clientData.coordinates) {
-          clientCoords = clientData.coordinates;
+          clientLocation = clientData.coordinates;
+          setClientCoords(clientData.coordinates);
         }
       }
 
@@ -66,10 +77,10 @@ export default function ClientBookingPage() {
       });
 
       // 3. Calculate distance if client coordinates are available
-      if (clientCoords) {
+      if (clientLocation) {
         barbersList.forEach(barber => {
           if (barber.coordinates) {
-            barber.distance = getDistance(clientCoords!.lat, clientCoords!.lng, barber.coordinates.lat, barber.coordinates.lng);
+            barber.distance = getDistance(clientLocation!.lat, clientLocation!.lng, barber.coordinates.lat, barber.coordinates.lng);
           }
         });
         
@@ -88,6 +99,32 @@ export default function ClientBookingPage() {
     }
 
   }, [user, status, authLoading]);
+  
+  const handleSelectBarber = (barber: BarberWithDistance) => {
+      setSelectedBarber(barber);
+  }
+  
+  const handleBackToList = () => {
+      setSelectedBarber(null);
+  }
+
+  const mapLocations: MapLocation[] = barbers
+  .filter(barber => barber.coordinates)
+  .map(barber => ({
+      id: barber.id,
+      position: barber.coordinates!,
+      label: barber.fullName,
+      type: 'barber'
+  }));
+
+  if (clientCoords) {
+      mapLocations.push({
+          id: 'client',
+          position: clientCoords,
+          label: 'Sua Localização',
+          type: 'client'
+      })
+  }
 
   if (authLoading || isLoading || status === 'validating') {
     return (
@@ -99,30 +136,69 @@ export default function ClientBookingPage() {
       </div>
     );
   }
+  
+  const PageHeader = () => (
+     <div className="flex justify-between items-center mb-8">
+        <div className="text-left">
+            <h1 className="text-5xl font-bold font-headline text-primary">BarberFlow</h1>
+            <p className="text-muted-foreground mt-2">Agende um Horário com os Melhores Barbeiros</p>
+        </div>
+        <div className="flex items-center gap-4">
+           {user ? (
+            <>
+                <Link href="/dashboard/client">
+                    <Button variant="outline">
+                        Meus Agendamentos &rarr;
+                    </Button>
+                </Link>
+                <UserNav />
+            </>
+            ) : (
+                <Link href="/">
+                    <Button variant="outline">
+                        Login &rarr;
+                    </Button>
+                </Link>
+            )}
+        </div>
+      </div>
+  )
 
   return (
     <main className="min-h-screen bg-background p-4 sm:p-8 font-body text-foreground">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-bold font-headline text-primary">BarberFlow</h1>
-          <p className="text-muted-foreground mt-2">Agende um Horário com os Melhores Barbeiros</p>
-        </div>
-
-        {barbers.length === 0 ? (
-          <Card className="w-full max-w-md mx-auto bg-card">
-            <CardHeader>
-              <CardTitle className="text-center">Nenhum Barbeiro Disponível</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-center">
-                Volte mais tarde ou peça para um barbeiro se cadastrar na plataforma.
-              </p>
-            </CardContent>
-          </Card>
+      <div className="max-w-7xl mx-auto">
+        
+        {selectedBarber ? (
+            <>
+              <Header title={`Agendar com ${selectedBarber.fullName}`} showBackButton onBackClick={handleBackToList}/>
+              <BookingForm barber={selectedBarber} />
+            </>
         ) : (
-          <BookingForm barbers={barbers} />
+          <>
+            <PageHeader />
+            <div className="h-80 md:h-96 rounded-lg overflow-hidden my-8 border shadow-lg">
+                <BarbersMap apiKey={mapsApiKey} locations={mapLocations} center={clientCoords} zoom={13} />
+            </div>
+
+            {barbers.length === 0 ? (
+                <div className="text-center py-16">
+                    <Icons.Scissors className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h2 className="mt-4 text-2xl font-semibold">Nenhum Barbeiro Disponível</h2>
+                    <p className="text-muted-foreground mt-2">
+                        Volte mais tarde ou peça para um barbeiro se cadastrar na plataforma.
+                    </p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {barbers.map(barber => (
+                        <BarberCard key={barber.id} barber={barber} onSelect={handleSelectBarber} />
+                    ))}
+                </div>
+            )}
+          </>
         )}
       </div>
     </main>
   );
 }
+

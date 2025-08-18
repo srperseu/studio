@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
@@ -21,7 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
-import { UserNav } from './user-nav';
+
 
 const dayOfWeekMap = [
   'Domingo',
@@ -33,15 +32,11 @@ const dayOfWeekMap = [
   'Sábado'
 ];
 
-interface BarberWithDistance extends Barber {
-  distance?: number;
-}
 
-export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
+export function BookingForm({ barber }: { barber: Barber }) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [selectedBarberId, setSelectedBarberId] = useState<string>(barbers[0]?.id || '');
   const [clientName, setClientName] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -68,23 +63,11 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
     fetchClientProfile();
   }, [user]);
   
-  // When barbers list changes (e.g., after sorting), update the selected barber if it's not set
   useEffect(() => {
-    if (!selectedBarberId && barbers.length > 0) {
-      setSelectedBarberId(barbers[0].id);
-    }
-  }, [barbers, selectedBarberId]);
-
-
-  const selectedBarber = useMemo(() => {
-    return barbers.find(b => b.id === selectedBarberId);
-  }, [barbers, selectedBarberId]);
-
-  useEffect(() => {
-    if (selectedDate && selectedBarber?.availability) {
+    if (selectedDate && barber?.availability) {
       const dayOfWeekIndex = selectedDate.getDay();
       const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
-      const availabilityForDay = selectedBarber.availability[dayOfWeekName];
+      const availabilityForDay = barber.availability[dayOfWeekName];
 
       if (availabilityForDay && availabilityForDay.active) {
         setTimeSlot({ 
@@ -105,7 +88,7 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
     } else {
       setTimeSlot({ min: '00:00', max: '23:59', disabled: true, error: 'Selecione uma data para ver os horários.' });
     }
-  }, [selectedDate, selectedBarber]);
+  }, [selectedDate, barber]);
 
 
   const validateForm = () => {
@@ -126,7 +109,7 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para agendar.", variant: "destructive" });
         return;
     }
-    if (!validateForm() || !selectedBarber || !selectedDate) {
+    if (!validateForm() || !selectedDate) {
         return;
     }
     
@@ -134,7 +117,7 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
 
     try {
         const result = await createBooking(
-            selectedBarber.id,
+            barber.id,
             user.uid,
             clientName,
             selectedService,
@@ -143,7 +126,7 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
         );
 
         if (result.success) {
-          toast({ title: "Sucesso!", description: `Agendamento com ${selectedBarber.fullName} realizado!` });
+          toast({ title: "Sucesso!", description: `Agendamento com ${barber.fullName} realizado!` });
           setSelectedService('');
           setSelectedDate(undefined);
           setSelectedTime('');
@@ -169,73 +152,38 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
   };
 
   return (
-    <>
-      <div className="flex justify-end items-center gap-4 mb-4">
-        {user ? (
-            <>
-                <Link href="/dashboard/client">
-                    <Button variant="outline">
-                        Meus Agendamentos &rarr;
-                    </Button>
-                </Link>
-                <UserNav />
-            </>
-        ) : (
-            <Link href="/">
-                <Button variant="outline">
-                    Login &rarr;
-                </Button>
-            </Link>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-8">
         <Card className="bg-card">
-          <CardHeader>
-            <label htmlFor="barber-select" className="block text-sm font-medium text-muted-foreground mb-2">Escolha o Barbeiro</label>
-            <Select onValueChange={setSelectedBarberId} value={selectedBarberId}>
-                <SelectTrigger id="barber-select">
-                    <SelectValue placeholder="Selecione um barbeiro" />
-                </SelectTrigger>
-                <SelectContent>
-                    {barbers.map(b => <SelectItem key={b.id} value={b.id}>{b.fullName}</SelectItem>)}
-                </SelectContent>
-            </Select>
-          </CardHeader>
-          {selectedBarber && (
-            <CardContent>
-              <div className="flex items-start gap-4 mb-4">
-                <Image src={selectedBarber.photoURL || 'https://placehold.co/80x80.png'} alt={selectedBarber.fullName} width={80} height={80} className="rounded-full object-cover" data-ai-hint="barber portrait" />
-                <div className='flex-grow'>
-                  <h2 className="text-2xl font-bold">{selectedBarber.fullName}</h2>
-                  <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address?.fullAddress || 'Endereço não informado'}</p>
-                   {selectedBarber.distance !== undefined && (
-                    <p className="text-sm font-semibold text-primary mt-1">
-                      Aproximadamente {selectedBarber.distance.toFixed(1)} km de distância
-                    </p>
-                  )}
-                </div>
-              </div>
-              <p className="text-muted-foreground mb-4">{selectedBarber.description}</p>
-              <div className="border-t border-border pt-4">
-                <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
-                {selectedBarber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {selectedBarber.services.inShop.price}</p>}
-                {selectedBarber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {selectedBarber.services.atHome.price}</p>}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-        {selectedBarber && (
-          <Card className="bg-card">
             <CardHeader>
-              <CardTitle>Faça seu agendamento</CardTitle>
-              <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
+                <div className="flex items-start gap-4 mb-4">
+                    <Image src={barber.photoURL || 'https://placehold.co/80x80.png'} alt={barber.fullName} width={80} height={80} className="rounded-full object-cover border" data-ai-hint="barber portrait" />
+                    <div className='flex-grow'>
+                    <h2 className="text-2xl font-bold">{barber.fullName}</h2>
+                    <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {barber.address?.fullAddress || 'Endereço não informado'}</p>
+                    </div>
+                </div>
+                <p className="text-muted-foreground">{barber.description}</p>
             </CardHeader>
             <CardContent>
-              <form onSubmit={onSubmit} className="space-y-4">
+                 <div className="border-t border-border pt-4">
+                    <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
+                    {barber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {barber.services.inShop.price}</p>}
+                    {barber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {barber.services.atHome.price}</p>}
+                </div>
+            </CardContent>
+        </Card>
+
+        <Card className="bg-card">
+            <CardHeader>
+                <CardTitle>Faça seu agendamento</CardTitle>
+                <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={onSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                  <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required disabled={!!user}/>
-                  {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
+                    <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
+                    <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required disabled={!!user}/>
+                    {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
                 <div>
                     <label htmlFor="service" className="block text-sm font-medium text-muted-foreground">Serviço</label>
@@ -244,57 +192,55 @@ export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
                             <SelectValue placeholder="Selecione um serviço" />
                         </SelectTrigger>
                         <SelectContent>
-                            {selectedBarber.services?.inShop?.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {selectedBarber.services.inShop.price})</SelectItem>}
-                            {selectedBarber.services?.atHome?.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {selectedBarber.services.atHome.price})</SelectItem>}
+                            {barber.services?.inShop?.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {barber.services.inShop.price})</SelectItem>}
+                            {barber.services?.atHome?.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {barber.services.atHome.price})</SelectItem>}
                         </SelectContent>
                     </Select>
                     {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                    <div>
                     <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
                     <Popover>
-                      <PopoverTrigger asChild>
+                        <PopoverTrigger asChild>
                         <Button
-                          variant={"outline"}
-                          className={cn(
+                            variant={"outline"}
+                            className={cn(
                             "w-full justify-start text-left font-normal mt-1",
                             !selectedDate && "text-muted-foreground"
-                          )}
+                            )}
                         >
-                          <Icons.Calendar className="mr-2 h-4 w-4" />
-                          {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                            <Icons.Calendar className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
                         <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={setSelectedDate}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                          initialFocus
-                          locale={ptBR}
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                            initialFocus
+                            locale={ptBR}
                         />
-                      </PopoverContent>
+                        </PopoverContent>
                     </Popover>
                     {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                     <label htmlFor="time" className="block text-sm font-medium text-muted-foreground">Horário</label>
                     <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="mt-1" disabled={timeSlot.disabled} min={timeSlot.min} max={timeSlot.max} />
                     {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime}</p>}
                     {timeSlot.error && <p className="text-destructive text-xs mt-1">{timeSlot.error}</p>}
-                  </div>
+                    </div>
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
-                  {isLoading && <Icons.Spinner className="mr-2" />}
-                  {isLoading ? 'Agendando...' : 'Agendar Horário'}
+                    {isLoading && <Icons.Spinner className="mr-2" />}
+                    {isLoading ? 'Agendando...' : 'Agendar Horário'}
                 </Button>
-              </form>
+                </form>
             </CardContent>
-          </Card>
-        )}
+        </Card>
       </div>
-    </>
   );
 }
