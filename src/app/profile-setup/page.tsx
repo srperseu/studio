@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -17,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Icons } from '@/components/icons';
-import type { Barber } from '@/lib/types';
+import type { Barber, GeoPoint } from '@/lib/types';
 import { Header } from '@/components/header';
 
 const defaultAvailability = {
@@ -29,6 +30,24 @@ const defaultAvailability = {
   'Sábado': { active: true, start: '10:00', end: '20:00' },
   'Domingo': { active: false, start: '09:00', end: '18:00' },
 };
+
+async function getCoordinatesForAddress(address: string, apiKey: string): Promise<GeoPoint | null> {
+    if (!address || !apiKey) return null;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.status === 'OK' && data.results[0]) {
+            return data.results[0].geometry.location; // { lat, lng }
+        }
+        console.warn('Geocoding API warning:', data.status, data.error_message);
+        return null;
+    } catch (error) {
+        console.error('Error fetching geocoding data:', error);
+        return null;
+    }
+}
+
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading } = useAuth();
@@ -51,7 +70,7 @@ export default function ProfileSetupPage() {
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
   useEffect(() => {
     if (user) {
@@ -115,9 +134,24 @@ export default function ProfileSetupPage() {
       return;
     }
     setIsLoading(true);
+
+    let coordinates = null;
+    if (profile.address) {
+        coordinates = await getCoordinatesForAddress(profile.address, mapsApiKey);
+        if (!coordinates) {
+            toast({ title: 'Aviso', description: 'Não foi possível encontrar as coordenadas para o endereço fornecido. Verifique o endereço e tente novamente.', variant: 'destructive' });
+        }
+    }
+
     try {
       const barberRef = doc(db, 'barbers', user.uid);
-      await setDoc(barberRef, { ...profile, profileComplete: true }, { merge: true });
+      const dataToSave = { 
+        ...profile, 
+        coordinates: coordinates, // Salva as coordenadas (ou null)
+        profileComplete: true 
+      };
+      await setDoc(barberRef, dataToSave, { merge: true });
+
       toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
       router.push('/dashboard');
     } catch (error: any) {
@@ -143,14 +177,14 @@ export default function ProfileSetupPage() {
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <Header title="Configuração do Perfil de Barbeiro" showBackButton />
-        <Card className="bg-card border-border mt-8">
+        <Card className="bg-card border-none shadow-lg mt-8">
           <CardHeader>
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               
-              <Card className="p-6 bg-muted/50 border-border">
+              <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4">Informações Básicas</CardTitle>
                 <div className="flex flex-col sm:flex-row items-start gap-6">
                   <div className="flex flex-col items-center flex-shrink-0">
@@ -169,7 +203,7 @@ export default function ProfileSetupPage() {
                   <div className="flex-grow w-full space-y-2">
                     <Label htmlFor="description">Descrição / Biografia</Label>
                     <Textarea id="description" name="description" rows={4} value={profile.description || ''} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
-                    <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-accent hover:bg-accent/90">
+                    <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                       {isGeneratingDesc ? <Icons.Spinner className="mr-2" /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                       {isGeneratingDesc ? 'Gerando...' : 'Gerar Bio com IA'}
                     </Button>
@@ -177,7 +211,7 @@ export default function ProfileSetupPage() {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-muted/50 border-border">
+              <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4">Localização</CardTitle>
                 <Label htmlFor="address">Endereço da Barbearia</Label>
                 <div className="relative mt-2">
@@ -202,7 +236,7 @@ export default function ProfileSetupPage() {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-muted/50 border-border">
+              <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Calendar /> Horários de Atendimento</CardTitle>
                 <div className="space-y-4">
                   {Object.keys(profile.availability!).map(day => (
@@ -222,7 +256,7 @@ export default function ProfileSetupPage() {
                 </div>
               </Card>
               
-              <Card className="p-6 bg-muted/50 border-border">
+              <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Serviços e Preços</CardTitle>
                 <div className="space-y-4">
                   <div className="p-3 bg-muted/50 rounded-md">

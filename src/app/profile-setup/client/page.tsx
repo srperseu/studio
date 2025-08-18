@@ -13,8 +13,25 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import type { Client } from '@/lib/types';
+import type { Client, GeoPoint } from '@/lib/types';
 import { Header } from '@/components/header';
+
+async function getCoordinatesForAddress(address: string, apiKey: string): Promise<GeoPoint | null> {
+    if (!address || !apiKey) return null;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.status === 'OK' && data.results[0]) {
+            return data.results[0].geometry.location; // { lat, lng }
+        }
+        console.warn('Geocoding API warning:', data.status, data.error_message);
+        return null;
+    } catch (error) {
+        console.error('Error fetching geocoding data:', error);
+        return null;
+    }
+}
 
 export default function ProfileSetupClientPage() {
   const { user, loading: authLoading } = useAuth();
@@ -25,7 +42,7 @@ export default function ProfileSetupClientPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
   useEffect(() => {
     if (user) {
@@ -55,9 +72,23 @@ export default function ProfileSetupClientPage() {
       return;
     }
     setIsLoading(true);
+
+    let coordinates = null;
+    if (profile.address) {
+        coordinates = await getCoordinatesForAddress(profile.address, mapsApiKey);
+        if (!coordinates) {
+            toast({ title: 'Aviso', description: 'Não foi possível encontrar as coordenadas para o endereço fornecido. Verifique o endereço e tente novamente.', variant: 'destructive' });
+        }
+    }
+
     try {
       const clientRef = doc(db, 'clients', user.uid);
-      await setDoc(clientRef, { ...profile, profileComplete: true }, { merge: true });
+      const dataToSave = { 
+          ...profile, 
+          coordinates: coordinates, // Salva as coordenadas (ou null)
+          profileComplete: true 
+      };
+      await setDoc(clientRef, dataToSave, { merge: true });
       toast({ title: 'Sucesso!', description: 'Perfil salvo com sucesso!' });
     } catch (error: any) {
       console.error("Erro ao salvar o perfil do cliente: ", error);
@@ -82,13 +113,13 @@ export default function ProfileSetupClientPage() {
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <Header title="Configurar seu Perfil" showBackButton />
-        <Card className="bg-card border-border mt-8">
+        <Card className="bg-card border-none shadow-lg mt-8">
           <CardHeader>
             <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
-              <Card className="p-6 bg-muted/50 border-border">
+              <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4">Seu Endereço</CardTitle>
                 <Label htmlFor="address">Endereço Principal</Label>
                 <div className="relative mt-2">

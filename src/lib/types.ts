@@ -19,6 +19,11 @@ export interface Availability {
   };
 }
 
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
 export interface Barber {
   id: string;
   uid: string;
@@ -29,6 +34,7 @@ export interface Barber {
   photoURL?: string;
   description?: string;
   address?: string;
+  coordinates?: GeoPoint;
   availability: Availability;
   services: Services;
 }
@@ -40,6 +46,7 @@ export interface Client {
     email: string;
     phone: string;
     address?: string;
+    coordinates?: GeoPoint;
     profileComplete: boolean;
 }
 
