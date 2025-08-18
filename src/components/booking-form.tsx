@@ -33,7 +33,11 @@ const dayOfWeekMap = [
   'Sábado'
 ];
 
-export function BookingForm({ barbers }: { barbers: Barber[] }) {
+interface BarberWithDistance extends Barber {
+  distance?: number;
+}
+
+export function BookingForm({ barbers }: { barbers: BarberWithDistance[] }) {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -63,6 +67,14 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
     }
     fetchClientProfile();
   }, [user]);
+  
+  // When barbers list changes (e.g., after sorting), update the selected barber if it's not set
+  useEffect(() => {
+    if (!selectedBarberId && barbers.length > 0) {
+      setSelectedBarberId(barbers[0].id);
+    }
+  }, [barbers, selectedBarberId]);
+
 
   const selectedBarber = useMemo(() => {
     return barbers.find(b => b.id === selectedBarberId);
@@ -180,7 +192,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
         <Card className="bg-card">
           <CardHeader>
             <label htmlFor="barber-select" className="block text-sm font-medium text-muted-foreground mb-2">Escolha o Barbeiro</label>
-            <Select onValueChange={setSelectedBarberId} defaultValue={selectedBarberId}>
+            <Select onValueChange={setSelectedBarberId} value={selectedBarberId}>
                 <SelectTrigger id="barber-select">
                     <SelectValue placeholder="Selecione um barbeiro" />
                 </SelectTrigger>
@@ -191,11 +203,16 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
           </CardHeader>
           {selectedBarber && (
             <CardContent>
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-start gap-4 mb-4">
                 <Image src={selectedBarber.photoURL || 'https://placehold.co/80x80.png'} alt={selectedBarber.fullName} width={80} height={80} className="rounded-full object-cover" data-ai-hint="barber portrait" />
-                <div>
+                <div className='flex-grow'>
                   <h2 className="text-2xl font-bold">{selectedBarber.fullName}</h2>
                   <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address?.fullAddress || 'Endereço não informado'}</p>
+                   {selectedBarber.distance !== undefined && (
+                    <p className="text-sm font-semibold text-primary mt-1">
+                      Aproximadamente {selectedBarber.distance.toFixed(1)} km de distância
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="text-muted-foreground mb-4">{selectedBarber.description}</p>
