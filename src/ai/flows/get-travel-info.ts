@@ -9,7 +9,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getDistanceMatrix, GetTravelInfoOutputSchema } from '../tools/google-maps';
+import { getDistanceMatrix, GetTravelInfoOutputSchema as ToolOutputSchema } from '../tools/google-maps';
+
+export const GetTravelInfoOutputSchema = ToolOutputSchema;
 export type GetTravelInfoOutput = z.infer<typeof GetTravelInfoOutputSchema>;
 
 
