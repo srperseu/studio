@@ -12,7 +12,13 @@ interface HeaderProps {
 
 export function Header({ title, showBackButton = false, onBackClick }: HeaderProps) {
   const BackButton = () => (
-    <Button variant="outline" size="icon" aria-label="Voltar" onClick={onBackClick}>
+    <Button 
+      variant="outline" 
+      size="icon" 
+      aria-label="Voltar" 
+      onClick={onBackClick}
+      className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+    >
       <Icons.ChevronLeft />
     </Button>
   );
