@@ -67,7 +67,8 @@ export default function ProfileSetupClientPage() {
         if (docSnap.exists()) {
           const clientData = docSnap.data() as Client;
           if (clientData.address) {
-            setAddress(clientData.address);
+            // Merge fetched data with initial state to prevent undefined values
+            setAddress(prev => ({ ...prev, ...clientData.address }));
           }
         }
         setIsPageLoading(false);
@@ -187,7 +188,7 @@ export default function ProfileSetupClientPage() {
                     </div>
                      <div className="sm:col-span-2">
                         <Label htmlFor="complement">Complemento (Opcional)</Label>
-                        <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
+                        <Input type="text" id="complement" name="complement" value={address.complement} onChange={handleAddressChange} placeholder="Apto 45" />
                     </div>
                      <div>
                         <Label htmlFor="neighborhood">Bairro</Label>
