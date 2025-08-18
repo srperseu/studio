@@ -46,17 +46,16 @@ async function fetchDistanceMatrix(origin: string, destination: string, apiKey: 
   }
 }
 
-// Genkit Tool Definition (local to this file)
-const getDistanceMatrix = ai.defineTool(
+// Exported wrapper function
+export async function getTravelInfo(input: GetTravelInfoInput): Promise<GetTravelInfoOutput> {
+  return getTravelInfoFlow(input);
+}
+
+// Genkit Flow Definition
+const getTravelInfoFlow = ai.defineFlow(
   {
-    name: 'getDistanceMatrix',
-    description: 'Get the travel distance and duration between an origin and a destination.',
-    inputSchema: z.object({
-      originLat: z.number(),
-      originLng: z.number(),
-      destinationLat: z.number(),
-      destinationLng: z.number(),
-    }),
+    name: 'getTravelInfoFlow',
+    inputSchema: GetTravelInfoInputSchema,
     outputSchema: GetTravelInfoOutputSchema,
   },
   async (input) => {
@@ -73,45 +72,5 @@ const getDistanceMatrix = ai.defineTool(
     }
 
     return result;
-  }
-);
-
-
-// Exported wrapper function
-export async function getTravelInfo(input: GetTravelInfoInput): Promise<GetTravelInfoOutput> {
-  return getTravelInfoFlow(input);
-}
-
-// Genkit Flow Definition
-const getTravelInfoFlow = ai.defineFlow(
-  {
-    name: 'getTravelInfoFlow',
-    inputSchema: GetTravelInfoInputSchema,
-    outputSchema: GetTravelInfoOutputSchema,
-    tools: [getDistanceMatrix],
-  },
-  async (input) => {
-    
-    const llmResponse = await ai.generate({
-      prompt: `What is the distance and duration between origin ${input.originLat},${input.originLng} and destination ${input.destinationLat},${input.destinationLng}?`,
-      tools: [getDistanceMatrix],
-      model: 'googleai/gemini-2.0-flash'
-    });
-
-    const toolResponse = llmResponse.toolRequest?.output;
-    if (!toolResponse) {
-        throw new Error('Tool did not execute or returned no response.');
-    }
-    
-    const travelInfo = toolResponse[0]?.result;
-
-    if (!travelInfo || !travelInfo.distance || !travelInfo.duration) {
-      throw new Error('Failed to get travel information from the tool.');
-    }
-
-    return {
-      distance: travelInfo.distance,
-      duration: travelInfo.duration,
-    };
   }
 );
