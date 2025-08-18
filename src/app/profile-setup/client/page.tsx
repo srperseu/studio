@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
 import type { Client, GeoPoint, Address } from '@/lib/types';
 import { Header } from '@/components/header';
+import { BarbersMap, type MapLocation } from '@/components/barbers-map';
 
 const initialAddress: Address = {
     cep: '',
@@ -50,12 +51,19 @@ export default function ProfileSetupClientPage() {
   const { toast } = useToast();
 
   const [address, setAddress] = useState<Address>(initialAddress);
+  const [coordinates, setCoordinates] = useState<GeoPoint | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isCepLoading, setIsCepLoading] = useState(false);
 
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  const fullAddressString = address.street ? `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}` : '';
+  
+  const mapLocations: MapLocation[] = coordinates ? [{
+      id: user?.uid || 'client',
+      position: coordinates,
+      label: 'Sua Localização',
+      type: 'client'
+  }] : [];
 
 
   useEffect(() => {
@@ -67,8 +75,10 @@ export default function ProfileSetupClientPage() {
         if (docSnap.exists()) {
           const clientData = docSnap.data() as Client;
           if (clientData.address) {
-            // Merge fetched data with initial state to prevent undefined values
             setAddress(prev => ({ ...prev, ...clientData.address }));
+          }
+          if (clientData.coordinates) {
+              setCoordinates(clientData.coordinates);
           }
         }
         setIsPageLoading(false);
@@ -120,11 +130,13 @@ export default function ProfileSetupClientPage() {
     setIsLoading(true);
     
     const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
-    let coordinates = null;
+    let newCoordinates: GeoPoint | null = null;
     if (address.street && address.number) {
-        coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
-        if (!coordinates) {
+        newCoordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
+        if (!newCoordinates) {
             toast({ title: 'Aviso', description: 'Não foi possível encontrar as coordenadas para o endereço fornecido. Verifique o endereço e tente novamente.', variant: 'destructive' });
+        } else {
+            setCoordinates(newCoordinates);
         }
     }
 
@@ -133,7 +145,7 @@ export default function ProfileSetupClientPage() {
       const finalAddress = { ...address, fullAddress: completeAddress };
       const dataToSave = { 
           address: finalAddress, 
-          coordinates: coordinates,
+          coordinates: newCoordinates,
           profileComplete: true 
       };
       await setDoc(clientRef, dataToSave, { merge: true });
@@ -163,7 +175,7 @@ export default function ProfileSetupClientPage() {
         <Header title="Configurar seu Perfil" showBackButton />
         <Card className="bg-card border-none shadow-lg mt-8">
           <CardHeader>
-            <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio.</CardDescription>
+            <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio e encontrar barbeiros próximos.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -188,7 +200,7 @@ export default function ProfileSetupClientPage() {
                     </div>
                      <div className="sm:col-span-2">
                         <Label htmlFor="complement">Complemento (Opcional)</Label>
-                        <Input type="text" id="complement" name="complement" value={address.complement} onChange={handleAddressChange} placeholder="Apto 45" />
+                        <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
                     </div>
                      <div>
                         <Label htmlFor="neighborhood">Bairro</Label>
@@ -205,20 +217,12 @@ export default function ProfileSetupClientPage() {
                 </div>
 
                 <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
-                  {mapsApiKey && fullAddressString ? (
-                     <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(fullAddressString)}`}>
-                      </iframe>
-                  ) : (
-                    <p className="text-center p-4">
-                      {fullAddressString ? 'Chave da API do Google Maps não configurada.' : 'Preencha o endereço para ver o mapa.'}
-                    </p>
-                  )}
+                   <BarbersMap 
+                    apiKey={mapsApiKey}
+                    locations={mapLocations}
+                    center={coordinates}
+                    zoom={15}
+                   />
                 </div>
               </Card>
               
