@@ -101,7 +101,10 @@ export default function ProfileSetupPage() {
              availability: data.availability || defaultAvailability,
              services: data.services || { inShop: { active: true, price: '' }, atHome: { active: false, price: '' } }
             }));
-          if (data.address) setAddress(data.address);
+          if (data.address) {
+            // Merge fetched data with initial state to prevent undefined values
+            setAddress(prev => ({ ...prev, ...data.address }));
+          }
           if (data.photoURL) setPreviewImage(data.photoURL);
         }
         setIsPageLoading(false);
