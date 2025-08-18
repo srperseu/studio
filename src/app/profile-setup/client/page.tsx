@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import type { Client, GeoPoint, Address } from '@/lib/types';
+import type { Client, GeoPoint, Address, Appointment, Barber } from '@/lib/types';
 import { Header } from '@/components/header';
 import { BarbersMap, type MapLocation } from '@/components/barbers-map';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClientDashboardHistory } from '@/components/client-dashboard-history';
 
 const initialAddress: Address = {
     cep: '',
@@ -171,68 +173,77 @@ export default function ProfileSetupClientPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        <Header title="Configurar seu Perfil" showBackButton />
-        <Card className="bg-card border-none shadow-lg mt-8">
-          <CardHeader>
-            <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio e encontrar barbeiros próximos.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4">Seu Endereço</CardTitle>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="sm:col-span-1">
-                        <Label htmlFor="cep">CEP</Label>
-                        <div className="relative">
-                            <Input type="text" id="cep" name="cep" value={address.cep} onChange={handleAddressChange} onBlur={handleCepBlur} placeholder="00000-000" maxLength={9} required />
-                            {isCepLoading && <Icons.Spinner className="absolute right-3 top-1/2 -translate-y-1/2" />}
+      <div className="max-w-7xl mx-auto">
+        <Header title="Meu Perfil" />
+        <Tabs defaultValue="profile" className="mt-8">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="profile">Perfil</TabsTrigger>
+                <TabsTrigger value="history">Histórico de Agendamentos</TabsTrigger>
+            </TabsList>
+            <TabsContent value="profile" className="mt-6">
+                <Card className="bg-card border-none shadow-lg mt-8 max-w-4xl">
+                    <CardHeader>
+                        <CardTitle>Seu Endereço</CardTitle>
+                        <CardDescription>Atualize seu endereço principal para facilitar o atendimento em domicílio e encontrar barbeiros próximos.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-1">
+                                <Label htmlFor="cep">CEP</Label>
+                                <div className="relative">
+                                    <Input type="text" id="cep" name="cep" value={address.cep} onChange={handleAddressChange} onBlur={handleCepBlur} placeholder="00000-000" maxLength={9} required />
+                                    {isCepLoading && <Icons.Spinner className="absolute right-3 top-1/2 -translate-y-1/2" />}
+                                </div>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor="street">Rua</Label>
+                                <Input type="text" id="street" name="street" value={address.street} onChange={handleAddressChange} placeholder="Rua dos Pinheiros" required disabled={isCepLoading} />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <Label htmlFor="number">Número</Label>
+                                <Input type="text" id="number" name="number" value={address.number} onChange={handleAddressChange} placeholder="123" required />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor="complement">Complemento (Opcional)</Label>
+                                <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
+                            </div>
+                            <div>
+                                <Label htmlFor="neighborhood">Bairro</Label>
+                                <Input type="text" id="neighborhood" name="neighborhood" value={address.neighborhood} onChange={handleAddressChange} placeholder="Jardim Paulista" required disabled={isCepLoading}/>
+                            </div>
+                            <div>
+                                <Label htmlFor="city">Cidade</Label>
+                                <Input type="text" id="city" name="city" value={address.city} onChange={handleAddressChange} placeholder="São Paulo" required disabled={isCepLoading}/>
+                            </div>
+                            <div>
+                                <Label htmlFor="state">Estado</Label>
+                                <Input type="text" id="state" name="state" value={address.state} onChange={handleAddressChange} placeholder="SP" required disabled={isCepLoading}/>
+                            </div>
                         </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                        <Label htmlFor="street">Rua</Label>
-                        <Input type="text" id="street" name="street" value={address.street} onChange={handleAddressChange} placeholder="Rua dos Pinheiros" required disabled={isCepLoading} />
-                    </div>
-                     <div className="sm:col-span-1">
-                        <Label htmlFor="number">Número</Label>
-                        <Input type="text" id="number" name="number" value={address.number} onChange={handleAddressChange} placeholder="123" required />
-                    </div>
-                     <div className="sm:col-span-2">
-                        <Label htmlFor="complement">Complemento (Opcional)</Label>
-                        <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
-                    </div>
-                     <div>
-                        <Label htmlFor="neighborhood">Bairro</Label>
-                        <Input type="text" id="neighborhood" name="neighborhood" value={address.neighborhood} onChange={handleAddressChange} placeholder="Jardim Paulista" required disabled={isCepLoading}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="city">Cidade</Label>
-                        <Input type="text" id="city" name="city" value={address.city} onChange={handleAddressChange} placeholder="São Paulo" required disabled={isCepLoading}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="state">Estado</Label>
-                        <Input type="text" id="state" name="state" value={address.state} onChange={handleAddressChange} placeholder="SP" required disabled={isCepLoading}/>
-                    </div>
-                </div>
 
-                <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
-                   <BarbersMap 
-                    apiKey={mapsApiKey}
-                    locations={mapLocations}
-                    center={coordinates}
-                    zoom={15}
-                   />
-                </div>
-              </Card>
-              
-              <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
-                 {isLoading && <Icons.Spinner className="mr-2 h-4 w-4" />}
-                {isLoading ? 'Salvando...' : 'Salvar Endereço'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                        <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
+                        <BarbersMap 
+                            apiKey={mapsApiKey}
+                            locations={mapLocations}
+                            center={coordinates}
+                            zoom={15}
+                        />
+                        </div>
+                        
+                        <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
+                        {isLoading && <Icons.Spinner className="mr-2 h-4 w-4" />}
+                        {isLoading ? 'Salvando...' : 'Salvar Endereço'}
+                        </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="history" className="mt-6">
+                <ClientDashboardHistory />
+            </TabsContent>
+        </Tabs>
+        
       </div>
     </div>
   );

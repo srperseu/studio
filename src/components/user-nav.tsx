@@ -97,7 +97,7 @@ export function UserNav() {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/profile-setup')}>
                 <Icons.User className="mr-2" />
-                <span>Editar Perfil</span>
+                <span>Meu Perfil</span>
               </DropdownMenuItem>
             </>
           )}
@@ -109,7 +109,7 @@ export function UserNav() {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/profile-setup/client')}>
                 <Icons.User className="mr-2" />
-                <span>Editar Perfil</span>
+                <span>Meu Perfil</span>
               </DropdownMenuItem>
             </>
           )}
