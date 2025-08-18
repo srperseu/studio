@@ -9,7 +9,7 @@ import { Icons } from './icons';
 import { Badge } from './ui/badge';
 
 interface BarberWithDistance extends Barber {
-    distance?: number;
+    distanceText?: string;
 }
 
 interface BarberCardProps {
@@ -35,9 +35,9 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
                         <Icons.MapPin className="h-4 w-4 flex-shrink-0" />
                         <span>{barber.address?.city} - {barber.address?.state}</span>
                     </CardDescription>
-                    {barber.distance !== undefined && (
+                    {barber.distanceText && (
                         <Badge variant="secondary" className="mt-2">
-                           ~ {barber.distance.toFixed(1)} km
+                           ~ {barber.distanceText}
                         </Badge>
                     )}
                 </div>

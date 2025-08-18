@@ -14,27 +14,11 @@ import { Button } from '@/components/ui/button';
 import { UserNav } from '@/components/user-nav';
 import Link from 'next/link';
 import { Header } from '@/components/header';
-
-// Haversine formula to calculate distance between two lat/lng points
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Radius of the earth in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c; // Distance in km
-  return d;
-}
-
-function deg2rad(deg: number) {
-  return deg * (Math.PI / 180);
-}
+import { getTravelInfo } from '@/ai/flows/get-travel-info';
 
 interface BarberWithDistance extends Barber {
-    distance?: number;
+    distanceText?: string;
+    durationText?: string;
 }
 
 
@@ -49,12 +33,12 @@ export default function ClientBookingPage() {
 
 
   useEffect(() => {
-    async function fetchAndSortBarbers() {
+    async function fetchAndProcessBarbers() {
       if (!user) return;
       setIsLoading(true);
 
       // 1. Fetch client data to get their coordinates
-      let clientLocation = null;
+      let clientLocation: GeoPoint | null = null;
       const clientRef = doc(db, 'clients', user.uid);
       const clientSnap = await getDoc(clientRef);
       if (clientSnap.exists()) {
@@ -69,28 +53,52 @@ export default function ClientBookingPage() {
       const q = query(collection(db, 'barbers'), where('profileComplete', '==', true));
       const querySnapshot = await getDocs(q);
       const barbersList: BarberWithDistance[] = [];
+      const barberDestinations: {id: string, coords: GeoPoint}[] = [];
+      
       querySnapshot.forEach((doc) => {
-        barbersList.push({ id: doc.id, ...doc.data() } as Barber);
+        const barberData = { id: doc.id, ...doc.data() } as Barber;
+        barbersList.push(barberData);
+        if (barberData.coordinates) {
+            barberDestinations.push({id: barberData.id, coords: barberData.coordinates});
+        }
       });
+      
+      // 3. Fetch travel info if client and barbers have coordinates
+      if (clientLocation && barberDestinations.length > 0) {
+        try {
+            const travelInfos = await getTravelInfo({
+                origin: clientLocation,
+                destinations: barberDestinations.map(d => d.coords)
+            });
 
-      // 3. Calculate distance if client coordinates are available
-      if (clientLocation) {
-        barbersList.forEach(barber => {
-          if (barber.coordinates) {
-            barber.distance = getDistance(clientLocation!.lat, clientLocation!.lng, barber.coordinates.lat, barber.coordinates.lng);
-          }
-        });
-        
-        // 4. Sort barbers by distance
-        barbersList.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+            const barbersWithDistance = barbersList.map((barber, index) => {
+                const destinationIndex = barberDestinations.findIndex(d => d.id === barber.id);
+                if (destinationIndex !== -1 && travelInfos[destinationIndex]) {
+                     return {
+                        ...barber,
+                        distanceText: travelInfos[destinationIndex].distance,
+                        durationText: travelInfos[destinationIndex].duration,
+                     }
+                }
+                return barber;
+            });
+            setBarbers(barbersWithDistance);
+
+        } catch (error) {
+            console.error("Failed to fetch travel info for barbers list:", error);
+            // Fallback to original list if API fails
+            setBarbers(barbersList);
+        }
+
+      } else {
+        setBarbers(barbersList);
       }
 
-      setBarbers(barbersList);
       setIsLoading(false);
     }
     
     if (status === 'valid') {
-        fetchAndSortBarbers();
+        fetchAndProcessBarbers();
     } else if (!authLoading && status === 'invalid') {
         setIsLoading(false); // Stop loading if auth guard fails
     }

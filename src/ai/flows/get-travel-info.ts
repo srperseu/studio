@@ -11,32 +11,41 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 // Schemas and Types
+const DestinationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
 const GetTravelInfoInputSchema = z.object({
-  originLat: z.number().describe("The latitude of the origin."),
-  originLng: z.number().describe("The longitude of the origin."),
-  destinationLat: z.number().describe("The latitude of the destination."),
-  destinationLng: z.number().describe("The longitude of the destination."),
+  origin: DestinationSchema.describe("The origin coordinates."),
+  destinations: z.array(DestinationSchema).describe("An array of destination coordinates."),
 });
 export type GetTravelInfoInput = z.infer<typeof GetTravelInfoInputSchema>;
 
-const GetTravelInfoOutputSchema = z.object({
+const TravelInfoSchema = z.object({
     distance: z.string().describe("The total distance of the route."),
     duration: z.string().describe("The total duration of the route."),
 });
+const GetTravelInfoOutputSchema = z.array(TravelInfoSchema);
 export type GetTravelInfoOutput = z.infer<typeof GetTravelInfoOutputSchema>;
 
 
 // Helper function to call Google Maps API
-async function fetchDistanceMatrix(origin: string, destination: string, apiKey: string) {
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${apiKey}&units=metric&language=pt-BR`;
+async function fetchDistanceMatrix(origin: string, destinations: string, apiKey: string) {
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destinations}&key=${apiKey}&units=metric&language=pt-BR`;
   try {
     const response = await fetch(url);
     const data = await response.json();
-    if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
-      return {
-        distance: data.rows[0].elements[0].distance.text,
-        duration: data.rows[0].elements[0].duration.text,
-      };
+    if (data.status === 'OK') {
+      return data.rows[0].elements.map((element: any) => {
+        if (element.status === 'OK') {
+          return {
+            distance: element.distance.text,
+            duration: element.duration.text,
+          };
+        }
+        return { distance: 'N/A', duration: 'N/A' };
+      });
     }
     console.error('Distance Matrix API Error:', data.error_message || data.status);
     return null;
@@ -63,10 +72,10 @@ const getTravelInfoFlow = ai.defineFlow(
     if (!apiKey) {
       throw new Error('Google Maps API key is not configured.');
     }
-    const origin = `${input.originLat},${input.originLng}`;
-    const destination = `${input.destinationLat},${input.destinationLng}`;
+    const origin = `${input.origin.lat},${input.origin.lng}`;
+    const destinations = input.destinations.map(d => `${d.lat},${d.lng}`).join('|');
     
-    const result = await fetchDistanceMatrix(origin, destination, apiKey);
+    const result = await fetchDistanceMatrix(origin, destinations, apiKey);
     if (!result) {
       throw new Error('Failed to retrieve distance matrix data.');
     }
