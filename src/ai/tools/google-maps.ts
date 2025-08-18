@@ -2,7 +2,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {GetTravelInfoOutputSchema} from '../flows/get-travel-info';
+
+export const GetTravelInfoOutputSchema = z.object({
+    distance: z.string().describe("The total distance of the route."),
+    duration: z.string().describe("The total duration of the route."),
+});
 
 async function fetchDistanceMatrix(origin: string, destination: string, apiKey: string) {
   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${apiKey}&units=metric&language=pt-BR`;
