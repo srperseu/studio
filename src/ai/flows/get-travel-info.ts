@@ -11,7 +11,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 // Schemas and Types
-export const GetTravelInfoInputSchema = z.object({
+const GetTravelInfoInputSchema = z.object({
   originLat: z.number().describe("The latitude of the origin."),
   originLng: z.number().describe("The longitude of the origin."),
   destinationLat: z.number().describe("The latitude of the destination."),
@@ -19,7 +19,7 @@ export const GetTravelInfoInputSchema = z.object({
 });
 export type GetTravelInfoInput = z.infer<typeof GetTravelInfoInputSchema>;
 
-export const GetTravelInfoOutputSchema = z.object({
+const GetTravelInfoOutputSchema = z.object({
     distance: z.string().describe("The total distance of the route."),
     duration: z.string().describe("The total duration of the route."),
 });
