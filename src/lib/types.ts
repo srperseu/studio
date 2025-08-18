@@ -24,6 +24,18 @@ export interface GeoPoint {
   lng: number;
 }
 
+export interface Address {
+  cep: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  fullAddress: string;
+}
+
+
 export interface Barber {
   id: string;
   uid: string;
@@ -33,7 +45,7 @@ export interface Barber {
   profileComplete: boolean;
   photoURL?: string;
   description?: string;
-  address?: string;
+  address?: Address;
   coordinates?: GeoPoint;
   availability: Availability;
   services: Services;
@@ -45,7 +57,7 @@ export interface Client {
     fullName: string;
     email: string;
     phone: string;
-    address?: string;
+    address?: Address;
     coordinates?: GeoPoint;
     profileComplete: boolean;
 }

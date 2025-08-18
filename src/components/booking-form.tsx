@@ -195,7 +195,7 @@ export function BookingForm({ barbers }: { barbers: Barber[] }) {
                 <Image src={selectedBarber.photoURL || 'https://placehold.co/80x80.png'} alt={selectedBarber.fullName} width={80} height={80} className="rounded-full object-cover" data-ai-hint="barber portrait" />
                 <div>
                   <h2 className="text-2xl font-bold">{selectedBarber.fullName}</h2>
-                  <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address}</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><Icons.MapPin className="h-4 w-4" /> {selectedBarber.address?.fullAddress || 'Endereço não informado'}</p>
                 </div>
               </div>
               <p className="text-muted-foreground mb-4">{selectedBarber.description}</p>

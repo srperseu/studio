@@ -79,17 +79,13 @@ export function DashboardClient() {
   const { scheduledAppointments, pastAppointments } = useMemo(() => {
     const scheduledList: Appointment[] = [];
     const pastList: Appointment[] = [];
-    
-    // This gives midnight in the local timezone
-    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
+
+    const now = new Date();
 
     appointments.forEach(app => {
-      // Create a date object from the 'YYYY-MM-DD' string in the local timezone
-      const [year, month, day] = app.date.split('-').map(Number);
-      const appDate = new Date(year, month - 1, day);
-      const appDateTimestamp = appDate.getTime();
+      const appDateTime = new Date(`${app.date}T${app.time}`);
       
-      if (app.status === 'scheduled' && appDateTimestamp >= todayTimestamp) {
+      if (app.status === 'scheduled' && appDateTime >= now) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -103,13 +99,11 @@ export function DashboardClient() {
   }, [appointments]);
 
   const pendingAppointments = useMemo(() => {
-    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
+    const now = new Date();
     return pastAppointments
       .filter(app => {
-        const [year, month, day] = app.date.split('-').map(Number);
-        const appDate = new Date(year, month - 1, day);
-        const appDateTimestamp = appDate.getTime();
-        return app.status === 'scheduled' && appDateTimestamp < todayTimestamp;
+        const appDateTime = new Date(`${app.date}T${app.time}`);
+        return app.status === 'scheduled' && appDateTime < now;
       })
       .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
   }, [pastAppointments]);
@@ -390,7 +384,7 @@ export function DashboardClient() {
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-bold text-primary">Endereço</h3>
-                <p className="text-muted-foreground">{barberData.address || 'Não informado'}</p>
+                <p className="text-muted-foreground">{barberData.address?.fullAddress || 'Não informado'}</p>
               </div>
               <div>
                 <h3 className="font-bold text-primary">Serviços</h3>

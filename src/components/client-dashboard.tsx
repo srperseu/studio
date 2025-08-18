@@ -91,13 +91,13 @@ export function ClientDashboard() {
   const { scheduledAppointments, pastAppointments } = useMemo(() => {
     const scheduledList: AppointmentWithBarber[] = [];
     const pastList: AppointmentWithBarber[] = [];
-    
-    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
+
+    const now = new Date();
 
     appointments.forEach(app => {
-      const appDateTimestamp = new Date(app.date).setHours(0,0,0,0);
+      const appDateTime = new Date(`${app.date}T${app.time}`);
       
-      if (app.status === 'scheduled' && appDateTimestamp >= todayTimestamp) {
+      if (app.status === 'scheduled' && appDateTime >= now) {
         scheduledList.push(app);
       } else {
         pastList.push(app);
@@ -162,7 +162,7 @@ export function ClientDashboard() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.MapPin className="h-4 w-4" />
-                    <span>{app.barber?.address || 'Endereço não informado'}</span>
+                    <span>{app.barber?.address?.fullAddress || 'Endereço não informado'}</span>
                 </div>
                  <div className='flex gap-2 pt-2'>
                     <Badge variant={app.type === 'inShop' ? 'secondary' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : '')}>
@@ -334,7 +334,3 @@ export function ClientDashboard() {
      </div>
   );
 }
-
-    
-
-    
