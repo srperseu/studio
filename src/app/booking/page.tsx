@@ -7,7 +7,6 @@ import { db } from '@/lib/firebase';
 import type { Barber, Client, GeoPoint } from '@/lib/types';
 import { BookingForm } from '@/components/booking-form';
 import { BarberCard } from '@/components/barber-card';
-import { BarbersMap, type MapLocation } from '@/components/barbers-map';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Icons } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
@@ -47,8 +46,6 @@ export default function ClientBookingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBarber, setSelectedBarber] = useState<BarberWithDistance | null>(null);
   const [clientCoords, setClientCoords] = useState<GeoPoint | null>(null);
-
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 
   useEffect(() => {
@@ -153,7 +150,7 @@ export default function ClientBookingPage() {
         {selectedBarber ? (
             <>
               <Header title={`Agendar com ${selectedBarber.fullName}`} showBackButton onBackClick={handleBackToList}/>
-              <BookingForm barber={selectedBarber} />
+              <BookingForm barber={selectedBarber} clientCoords={clientCoords} />
             </>
         ) : (
           <>

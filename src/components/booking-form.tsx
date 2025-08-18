@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-import type { Barber, Client } from '@/lib/types';
+import type { Barber, Client, GeoPoint } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
-
 
 const dayOfWeekMap = [
   'Domingo',
@@ -32,8 +31,12 @@ const dayOfWeekMap = [
   'Sábado'
 ];
 
+interface BookingFormProps {
+    barber: Barber;
+    clientCoords: GeoPoint | null;
+}
 
-export function BookingForm({ barber }: { barber: Barber }) {
+export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -46,6 +49,11 @@ export function BookingForm({ barber }: { barber: Barber }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const [timeSlot, setTimeSlot] = useState<{min: string, max: string, disabled: boolean, error?: string}>({min: '00:00', max: '23:59', disabled: true});
+  
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const origin = clientCoords ? `${clientCoords.lat},${clientCoords.lng}` : '';
+  const destination = barber.coordinates ? `${barber.coordinates.lat},${barber.coordinates.lng}` : (barber.address?.fullAddress || '');
+  const canShowMap = mapsApiKey && origin && destination;
 
   useEffect(() => {
     async function fetchClientProfile() {
@@ -169,6 +177,21 @@ export function BookingForm({ barber }: { barber: Barber }) {
                     <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
                     {barber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {barber.services.inShop.price}</p>}
                     {barber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {barber.services.atHome.price}</p>}
+                </div>
+                <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
+                    {canShowMap ? (
+                        <iframe
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            allowFullScreen
+                            referrerPolicy="no-referrer-when-downgrade"
+                            src={`https://www.google.com/maps/embed/v1/directions?key=${mapsApiKey}&origin=${origin}&destination=${destination}`}>
+                        </iframe>
+                    ) : (
+                        <p>Não foi possível exibir o mapa de rota.</p>
+                    )}
                 </div>
             </CardContent>
         </Card>
