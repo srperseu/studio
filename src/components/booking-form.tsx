@@ -20,6 +20,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
+import { getTravelInfo } from '@/ai/flows/get-travel-info';
+import { Skeleton } from './ui/skeleton';
 
 const dayOfWeekMap = [
   'Domingo',
@@ -50,10 +52,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   
   const [timeSlot, setTimeSlot] = useState<{min: string, max: string, disabled: boolean, error?: string}>({min: '00:00', max: '23:59', disabled: true});
   
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-  const origin = clientCoords ? `${clientCoords.lat},${clientCoords.lng}` : '';
-  const destination = barber.coordinates ? `${barber.coordinates.lat},${barber.coordinates.lng}` : (barber.address?.fullAddress || '');
-  const canShowMap = mapsApiKey && origin && destination;
+  const [travelInfo, setTravelInfo] = useState<{distance: string; duration: string} | null>(null);
+  const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
 
   useEffect(() => {
     async function fetchClientProfile() {
@@ -97,6 +97,32 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       setTimeSlot({ min: '00:00', max: '23:59', disabled: true, error: 'Selecione uma data para ver os horários.' });
     }
   }, [selectedDate, barber]);
+
+  useEffect(() => {
+    async function fetchTravelInfo() {
+      if (clientCoords && barber.coordinates) {
+        setIsTravelInfoLoading(true);
+        try {
+          const info = await getTravelInfo({
+            originLat: clientCoords.lat,
+            originLng: clientCoords.lng,
+            destinationLat: barber.coordinates.lat,
+            destinationLng: barber.coordinates.lng,
+          });
+          setTravelInfo(info);
+        } catch (error) {
+          console.error("Failed to get travel info:", error);
+          // Don't show an error to the user, just don't display the info
+          setTravelInfo(null);
+        } finally {
+          setIsTravelInfoLoading(false);
+        }
+      } else {
+        setIsTravelInfoLoading(false);
+      }
+    }
+    fetchTravelInfo();
+  }, [clientCoords, barber.coordinates]);
 
 
   const validateForm = () => {
@@ -178,19 +204,21 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                     {barber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {barber.services.inShop.price}</p>}
                     {barber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {barber.services.atHome.price}</p>}
                 </div>
-                <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
-                    {canShowMap ? (
-                        <iframe
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            loading="lazy"
-                            allowFullScreen
-                            referrerPolicy="no-referrer-when-downgrade"
-                            src={`https://www.google.com/maps/embed/v1/directions?key=${mapsApiKey}&origin=${origin}&destination=${destination}`}>
-                        </iframe>
+
+                <div className="border-t border-border pt-4 mt-4">
+                   <h3 className="font-semibold mb-2">Informações da Viagem</h3>
+                    {isTravelInfoLoading ? (
+                        <div className="space-y-2">
+                           <Skeleton className="h-4 w-3/4" />
+                           <Skeleton className="h-4 w-1/2" />
+                        </div>
+                    ) : travelInfo ? (
+                        <div className="text-muted-foreground">
+                            <p><span className="font-medium text-foreground">Distância:</span> {travelInfo.distance}</p>
+                            <p><span className="font-medium text-foreground">Tempo Estimado:</span> {travelInfo.duration}</p>
+                        </div>
                     ) : (
-                        <p>Não foi possível exibir o mapa de rota.</p>
+                        <p className="text-muted-foreground text-sm">Não foi possível calcular a distância.</p>
                     )}
                 </div>
             </CardContent>
