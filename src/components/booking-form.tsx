@@ -104,15 +104,14 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         setIsTravelInfoLoading(true);
         try {
           const info = await getTravelInfo({
-            originLat: clientCoords.lat,
-            originLng: clientCoords.lng,
-            destinationLat: barber.coordinates.lat,
-            destinationLng: barber.coordinates.lng,
+            origin: clientCoords,
+            destinations: [barber.coordinates],
           });
-          setTravelInfo(info);
+          if (info && info.length > 0) {
+            setTravelInfo(info[0]);
+          }
         } catch (error) {
           console.error("Failed to get travel info:", error);
-          // Don't show an error to the user, just don't display the info
           setTravelInfo(null);
         } finally {
           setIsTravelInfoLoading(false);
