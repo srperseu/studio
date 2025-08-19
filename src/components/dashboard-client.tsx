@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -183,7 +183,7 @@ export function DashboardClient() {
     }
   };
   
-  const AppointmentCard = ({ app, context }: { app: Appointment, context: 'pending' | 'scheduled' | 'history' }) => {
+  const AppointmentCard = useCallback(({ app, context, barberId }: { app: Appointment, context: 'pending' | 'scheduled' | 'history', barberId: string | undefined }) => {
       const status = app.status;
       const isActionable = context === 'scheduled' || context === 'pending';
       
@@ -217,14 +217,17 @@ export function DashboardClient() {
               <p className="font-bold text-lg text-primary">{app.clientName}</p>
               <p className="text-muted-foreground">{app.serviceName} - R$ {(app.servicePrice ?? 0).toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-wrap items-center gap-2 pt-2">
                 {app.type === 'inShop' ? (
                      <Badge variant={'default'} className={'bg-primary/90'}>Na Barbearia</Badge>
                 ) : (
-                    <Button variant="outline" size="sm" className="h-auto" onClick={handleRouteClick}>
-                        <Icons.MapPin className="mr-2"/>
+                    <>
+                     <Badge variant={'default'} className={'bg-accent hover:bg-accent/90'}>Em Domicílio</Badge>
+                     <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs" onClick={handleRouteClick}>
+                        <Icons.MapPin className="mr-1 h-3 w-3"/>
                         Ver Rota
-                    </Button>
+                     </Button>
+                    </>
                 )}
                 {context === 'history' && getStatusBadge()}
               </div>
@@ -275,7 +278,8 @@ export function DashboardClient() {
             )}
           </div>
       );
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barberData?.id, isUpdating]);
 
   if (authLoading || isLoading) {
     return <DashboardSkeleton />;
@@ -310,7 +314,7 @@ export function DashboardClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {pendingAppointments.map(app => <AppointmentCard key={app.id} app={app} context="pending" />)}
+                        {pendingAppointments.map(app => <AppointmentCard key={app.id} app={app} context="pending" barberId={barberData?.id} />)}
                     </div>
                 </CardContent>
             </Card>
@@ -330,17 +334,17 @@ export function DashboardClient() {
                   </TabsList>
                   <TabsContent value="all">
                       <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
                       </div>
                   </TabsContent>
                   <TabsContent value="inShop">
                       <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
                       </div>
                   </TabsContent>
                   <TabsContent value="atHome">
                       <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" />)}
+                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
                       </div>
                   </TabsContent>
                 </Tabs>
@@ -366,27 +370,27 @@ export function DashboardClient() {
                     </TabsList>
                     <TabsContent value="all">
                         <div className="space-y-4">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                         </div>
                     </TabsContent>
                     <TabsContent value="scheduled">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="completed">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="cancelled">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="no-show">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" />)}
+                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                   </Tabs>
