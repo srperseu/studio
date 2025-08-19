@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
 import { revalidatePath } from 'next/cache';
-import type { Barber, Service } from '@/lib/types';
+import type { Barber, Service, Client } from '@/lib/types';
 
 // As funções de signUp e signIn foram movidas para o hook useAuth para serem executadas no lado do cliente.
 // A função de updateProfile foi movida para o lado do cliente para garantir o contexto de autenticação.
@@ -69,13 +69,24 @@ export async function createBooking(
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
     
+    // Fetch client data to get coordinates and address
+    const clientRef = doc(db, 'clients', clientUid);
+    const clientSnap = await getDoc(clientRef);
+    if (!clientSnap.exists()) {
+      return { success: false, message: 'Perfil do cliente não encontrado.' };
+    }
+    const clientData = clientSnap.data() as Client;
+
+
     const finalPrice = bookingType === 'atHome' 
-        ? selectedService.price + (selectedService.atHomeFee || 0)
+        ? (selectedService.atHomePrice || selectedService.price)
         : selectedService.price;
 
     await addDoc(collection(db, `barbers/${barberId}/appointments`), {
       clientName,
       clientUid, // Store the client's UID
+      clientCoordinates: clientData.coordinates || null,
+      clientFullAddress: clientData.address?.fullAddress || '',
       serviceName: selectedService.name,
       servicePrice: finalPrice,
       type: bookingType,

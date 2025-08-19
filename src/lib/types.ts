@@ -65,6 +65,8 @@ export interface Appointment {
   id: string;
   clientName: string;
   clientUid: string;
+  clientCoordinates?: GeoPoint | null;
+  clientFullAddress?: string;
   serviceName: string;
   servicePrice: number;
   type: 'inShop' | 'atHome';

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
@@ -195,6 +196,17 @@ export function DashboardClient() {
           }
       }
 
+      const handleRouteClick = () => {
+        if (!barberData?.coordinates || !app.clientCoordinates) {
+          toast({ title: 'Erro', description: 'Coordenadas de origem ou destino não encontradas.', variant: 'destructive' });
+          return;
+        }
+        const origin = `${barberData.coordinates.lat},${barberData.coordinates.lng}`;
+        const destination = `${app.clientCoordinates.lat},${app.clientCoordinates.lng}`;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+        window.open(url, '_blank');
+      };
+
       return (
           <div key={app.id} className={cn(
             "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4",
@@ -206,9 +218,14 @@ export function DashboardClient() {
               <p className="text-muted-foreground">{app.serviceName} - R$ {(app.servicePrice ?? 0).toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex gap-2 pt-2">
-                <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90')}>
-                    {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
-                </Badge>
+                {app.type === 'inShop' ? (
+                     <Badge variant={'default'} className={'bg-primary/90'}>Na Barbearia</Badge>
+                ) : (
+                    <Button variant="outline" size="sm" className="h-auto" onClick={handleRouteClick}>
+                        <Icons.MapPin className="mr-2"/>
+                        Ver Rota
+                    </Button>
+                )}
                 {context === 'history' && getStatusBadge()}
               </div>
             </div>
