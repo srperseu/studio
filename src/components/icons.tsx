@@ -19,6 +19,7 @@ import {
   X,
   Check,
   AlertTriangle,
+  ChevronsUpDown,
   type LucideProps
 } from 'lucide-react';
 
@@ -42,4 +43,5 @@ export const Icons = {
   X: (props: LucideProps) => <X {...props} />,
   Check: (props: LucideProps) => <Check {...props} />,
   AlertTriangle: (props: LucideProps) => <AlertTriangle {...props} />,
+  ChevronsUpDown: (props: LucideProps) => <ChevronsUpDown {...props} />,
 };
