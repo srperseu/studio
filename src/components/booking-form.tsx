@@ -69,9 +69,10 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   const finalPrice = useMemo(() => {
     if (!selectedService) return 0;
-    return bookingType === 'atHome' 
-        ? selectedService.price + (selectedService.atHomeFee || 0)
-        : selectedService.price;
+    if (bookingType === 'atHome' && selectedService.atHomeFee) {
+        return selectedService.atHomeFee;
+    }
+    return selectedService.price;
   }, [selectedService, bookingType]);
 
   useEffect(() => {
@@ -313,14 +314,14 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                     {selectedService && (
                         <div>
                             <Label className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</Label>
-                            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as any)} className="flex gap-4">
+                            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as 'inShop' | 'atHome')} className="flex gap-4">
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="inShop" id="inShop" />
                                     <Label htmlFor="inShop">Na Barbearia (R$ {selectedService.price.toFixed(2)})</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomeFee || selectedService.atHomeFee <= 0}/>
-                                    <Label htmlFor="atHome">Em Domicílio (+ R$ {selectedService.atHomeFee?.toFixed(2)})</Label>
+                                    <Label htmlFor="atHome">Em Domicílio (R$ {selectedService.atHomeFee?.toFixed(2)})</Label>
                                 </div>
                             </RadioGroup>
                         </div>
