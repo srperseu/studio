@@ -45,7 +45,12 @@ export function DashboardClient() {
           const barberRef = doc(db, 'barbers', user.uid);
           const barberSnap = await getDoc(barberRef);
           if (barberSnap.exists()) {
-            setBarberData({ id: barberSnap.id, ...barberSnap.data() } as Barber);
+            const data = barberSnap.data();
+            setBarberData({ 
+              id: barberSnap.id, 
+              ...data,
+              services: data.services || [],
+            } as Barber);
           }
 
           const q = query(collection(db, `barbers/${user.uid}/appointments`));
@@ -440,3 +445,7 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
+
+    
