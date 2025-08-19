@@ -198,7 +198,11 @@ export default function ProfileSetupPage() {
 
   const handleEditService = (service: Service) => {
     setEditingServiceId(service.id);
-    setNewService(service);
+    setNewService({
+        ...service,
+        atHomePrice: service.atHomePrice || 0,
+        duration: service.duration || 60,
+    });
   };
   
   const handleCancelEdit = () => {
@@ -419,11 +423,11 @@ export default function ProfileSetupPage() {
                         </div>
                          <div className='space-y-1'>
                             <Label htmlFor="service-atHomePrice">Preço Domicílio (R$)</Label>
-                            <Input id="service-atHomePrice" name="atHomePrice" type="number" value={newService.atHomePrice} onChange={handleNewServiceChange} placeholder="70.00" />
+                            <Input id="service-atHomePrice" name="atHomePrice" type="number" value={newService.atHomePrice || 0} onChange={handleNewServiceChange} placeholder="70.00" />
                         </div>
                         <div className='space-y-1'>
                             <Label htmlFor="service-duration">Duração (min)</Label>
-                            <Input id="service-duration" name="duration" type="number" value={newService.duration} onChange={handleNewServiceChange} placeholder="60" />
+                            <Input id="service-duration" name="duration" type="number" value={newService.duration || 60} onChange={handleNewServiceChange} placeholder="60" />
                         </div>
                         <Button type="button" onClick={handleAddOrUpdateService}>{editingServiceId ? 'Salvar' : 'Adicionar'}</Button>
                         {editingServiceId && (
@@ -444,3 +448,5 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
+
+    
