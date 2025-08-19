@@ -9,10 +9,12 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { z } from 'zod';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import type { Barber, Client, GeoPoint, Service, Appointment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
 import { useAuth } from '@/hooks/use-auth';
@@ -23,9 +25,19 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-const APPOINTMENT_DURATION_MINUTES = 45;
+const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
+
+const bookingSchema = z.object({
+  selectedServiceId: z.string().min(1, { message: 'Selecione um serviço.' }),
+  bookingType: z.enum(['inShop', 'atHome'], { required_error: 'Selecione o local de atendimento.' }),
+  selectedDate: z.date({ required_error: 'Selecione uma data.' }),
+  selectedTime: z.string().min(1, { message: 'Selecione um horário.' }),
+});
+
+type BookingFormValues = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
   barber: Barber;
@@ -36,23 +48,24 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const form = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+  });
+  
+  const { watch, control, setValue, trigger } = form;
+
+  const selectedServiceId = watch('selectedServiceId');
+  const bookingType = watch('bookingType');
+  const selectedDate = watch('selectedDate');
+
   const [clientName, setClientName] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [bookingType, setBookingType] = useState<'inShop' | 'atHome'>('inShop');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState('');
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
-  const [appointmentsOnDate, setAppointmentsOnDate] = useState<Appointment[]>([]);
-
-  const [isLoading, setIsLoading] = useState(false);
   const [isTimeLoading, setIsTimeLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [travelInfo, setTravelInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
 
   const selectedService = useMemo(() => {
-    if (!Array.isArray(barber.services)) return undefined;
+    if (!selectedServiceId || !Array.isArray(barber.services)) return undefined;
     return barber.services.find((s: Service) => s.id === selectedServiceId);
   }, [selectedServiceId, barber.services]);
 
@@ -81,19 +94,20 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   }, [user]);
 
   useEffect(() => {
+    // Reset time when date or service changes
+    setValue('selectedTime', ''); 
     if (selectedDate && barber?.availability) {
+      const serviceDuration = selectedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+      
       const fetchAppointmentsAndGenerateSlots = async () => {
         setIsTimeLoading(true);
-        // Fetch existing appointments for the selected date
         const q = query(
           collection(db, `barbers/${barber.id}/appointments`),
           where('date', '==', format(selectedDate, 'yyyy-MM-dd'))
         );
         const querySnapshot = await getDocs(q);
         const existingAppointments = querySnapshot.docs.map(doc => doc.data() as Appointment);
-        setAppointmentsOnDate(existingAppointments);
-
-        // Generate time slots
+        
         const dayOfWeekIndex = selectedDate.getDay();
         const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
         const availabilityForDay = barber.availability[dayOfWeekName];
@@ -116,8 +130,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             if (!isBooked) {
               slots.push(timeString);
             }
-
-            currentTime.setMinutes(currentTime.getMinutes() + APPOINTMENT_DURATION_MINUTES);
+            currentTime.setMinutes(currentTime.getMinutes() + serviceDuration);
           }
           setAvailableTimeSlots(slots);
         } else {
@@ -130,7 +143,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     } else {
       setAvailableTimeSlots([]);
     }
-  }, [selectedDate, barber]);
+  }, [selectedDate, barber, selectedService, setValue]);
+
 
   useEffect(() => {
     async function fetchTravelInfo() {
@@ -157,27 +171,16 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!clientName.trim()) newErrors.clientName = 'Seu nome é obrigatório';
-    if (!selectedService) newErrors.selectedService = 'Selecione um serviço';
-    if (!selectedDate) newErrors.selectedDate = 'Selecione uma data';
-    if (!selectedTime) newErrors.selectedTime = 'Selecione um horário';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Você precisa estar logado para agendar.', variant: 'destructive' });
       return;
     }
-    if (!validateForm() || !selectedDate || !selectedService) {
-      return;
+    if (!selectedService) {
+        form.setError('selectedServiceId', { type: 'manual', message: 'Serviço inválido.' });
+        return;
     }
-
-    setIsLoading(true);
 
     try {
       const result = await createBooking(
@@ -185,17 +188,14 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         user.uid,
         clientName,
         selectedService,
-        bookingType,
-        format(selectedDate, 'yyyy-MM-dd'),
-        selectedTime
+        data.bookingType,
+        format(data.selectedDate, 'yyyy-MM-dd'),
+        data.selectedTime
       );
 
       if (result.success) {
         toast({ title: 'Sucesso!', description: `Agendamento com ${barber.fullName} realizado!` });
-        setSelectedServiceId('');
-        setSelectedDate(undefined);
-        setSelectedTime('');
-        setErrors({});
+        form.reset();
       } else {
         console.error('Booking failed with message:', result.message);
         toast({
@@ -211,8 +211,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         description: `Ocorreu uma exceção: ${error.message}`,
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -244,7 +242,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             <div className="space-y-1 text-muted-foreground">
               {barber.services?.map(s => (
                 <div key={s.id} className="flex justify-between">
-                  <span>{s.name}</span>
+                  <span>{s.name} ({s.duration || DEFAULT_APPOINTMENT_DURATION} min)</span>
                   <span>R$ {s.price.toFixed(2)}</span>
                 </div>
               ))}
@@ -280,112 +278,160 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-6">
-            <div>
-              <Label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground mb-1">
-                Seu Nome
-              </Label>
-              <Input id="clientName" value={clientName} onChange={e => setClientName(e.target.value)} required disabled={!!user} />
-              {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
-            </div>
-
-            <div>
-              <Label className="block text-sm font-medium text-muted-foreground mb-2">Serviço</Label>
-              <RadioGroup value={selectedServiceId} onValueChange={setSelectedServiceId} className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-                {barber.services?.map(service => (
-                  <div key={service.id}>
-                    <RadioGroupItem value={service.id} id={service.id} className="peer sr-only" />
-                    <Label
-                      htmlFor={service.id}
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+          <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            
+            <FormField
+              control={control}
+              name="selectedServiceId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-sm font-medium text-muted-foreground mb-2">Serviço</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                            setValue('bookingType', 'inShop'); // Reset booking type on service change
+                        }}
+                        defaultValue={field.value}
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1"
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <p className="font-semibold">{service.name}</p>
-                        <p className="font-bold text-lg">R$ {service.price.toFixed(2)}</p>
-                      </div>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-              {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
-            </div>
+                      {barber.services?.map(service => (
+                        <FormItem key={service.id}>
+                          <FormControl>
+                            <RadioGroupItem value={service.id} id={service.id} className="peer sr-only" />
+                          </FormControl>
+                          <Label
+                            htmlFor={service.id}
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <p className="font-semibold">{service.name}</p>
+                              <p className="font-bold text-lg">R$ {service.price.toFixed(2)}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground w-full mt-1">
+                                {service.duration || DEFAULT_APPOINTMENT_DURATION} min
+                            </p>
+                          </Label>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {selectedService && (
-              <div>
-                <Label className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</Label>
-                <RadioGroup value={bookingType} onValueChange={value => setBookingType(value as 'inShop' | 'atHome')} className="flex gap-4">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="inShop" id="inShop" />
-                    <Label htmlFor="inShop">Na Barbearia (R$ {selectedService.price.toFixed(2)})</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomePrice || selectedService.atHomePrice <= 0} />
-                    <Label htmlFor="atHome">Em Domicílio {selectedService.atHomePrice ? `(R$ ${selectedService.atHomePrice.toFixed(2)})` : ''}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                <FormField
+                    control={control}
+                    name="bookingType"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex gap-4"
+                                >
+                                    <FormItem className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <RadioGroupItem value="inShop" id="inShop" />
+                                        </FormControl>
+                                        <Label htmlFor="inShop">Na Barbearia (R$ {selectedService.price.toFixed(2)})</Label>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2">
+                                         <FormControl>
+                                            <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomePrice || selectedService.atHomePrice <= 0} />
+                                         </FormControl>
+                                        <Label htmlFor="atHome">
+                                          Em Domicílio
+                                          {selectedService.atHomePrice ? ` (R$ ${selectedService.atHomePrice.toFixed(2)})` : ''}
+                                        </Label>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                             <FormMessage />
+                        </FormItem>
+                    )}
+                />
             )}
 
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">
-                  Data
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={'outline'}
-                      className={cn('w-full justify-start text-left font-normal', !selectedDate && 'text-muted-foreground')}
-                    >
-                      <Icons.Calendar className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={date => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
-              </div>
+                <FormField
+                    control={control}
+                    name="selectedDate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">
+                              Data
+                            </FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                        variant={'outline'}
+                                        className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}
+                                    >
+                                        <Icons.Calendar className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={date => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                  initialFocus
+                                  locale={ptBR}
+                                />
+                                </PopoverContent>
+                            </Popover>
+                             <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
               {selectedDate && (
-                <div>
-                  <Label htmlFor="time" className="block text-sm font-medium text-muted-foreground mb-1">
-                    Horário
-                  </Label>
-                  {isTimeLoading ? (
-                    <div className="grid grid-cols-4 gap-2">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
-                    </div>
-                  ) : availableTimeSlots.length > 0 ? (
-                    <div className="grid grid-cols-4 gap-2">
-                      {availableTimeSlots.map(time => (
-                        <Button
-                          key={time}
-                          type="button"
-                          variant={selectedTime === time ? 'default' : 'outline'}
-                          onClick={() => setSelectedTime(time)}
-                        >
-                          {time}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm text-center bg-muted p-4 rounded-md">
-                      Nenhum horário disponível para esta data.
-                    </p>
-                  )}
-                  {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime}</p>}
-                </div>
+                <FormField
+                    control={control}
+                    name="selectedTime"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel htmlFor="time" className="block text-sm font-medium text-muted-foreground mb-1">
+                                Horário
+                            </FormLabel>
+                             <FormControl>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {isTimeLoading ? (
+                                    Array.from({ length: 8 }).map((_, i) => (
+                                      <Skeleton key={i} className="h-10 w-full" />
+                                    ))
+                                  ) : availableTimeSlots.length > 0 ? (
+                                    availableTimeSlots.map(time => (
+                                      <Button
+                                        key={time}
+                                        type="button"
+                                        variant={field.value === time ? 'default' : 'outline'}
+                                        onClick={() => field.onChange(time)}
+                                      >
+                                        {time}
+                                      </Button>
+                                    ))
+                                  ) : (
+                                    <p className="col-span-4 text-muted-foreground text-sm text-center bg-muted p-4 rounded-md">
+                                      Nenhum horário disponível para esta data.
+                                    </p>
+                                  )}
+                                </div>
+                              </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
               )}
             </div>
 
@@ -393,10 +439,11 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
               <div className="text-right font-bold text-lg">Total: R$ {finalPrice.toFixed(2)}</div>
             )}
 
-            <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
-              {isLoading ? <Icons.Spinner className="mr-2" /> : 'Agendar Horário'}
+            <Button type="submit" disabled={form.formState.isSubmitting} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+              {form.formState.isSubmitting ? <Icons.Spinner /> : 'Agendar Horário'}
             </Button>
           </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

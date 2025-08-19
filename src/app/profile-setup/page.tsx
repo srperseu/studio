@@ -42,7 +42,7 @@ const initialAddress: Address = {
     fullAddress: '',
 };
 
-const initialService: Service = { id: '', name: '', price: 0, atHomeFee: 0 };
+const initialService: Service = { id: '', name: '', price: 0, atHomePrice: 0, duration: 60 };
 
 
 async function getCoordinatesForAddress(address: string, apiKey: string): Promise<GeoPoint | null> {
@@ -169,7 +169,7 @@ export default function ProfileSetupPage() {
   
   const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewService(prev => ({ ...prev, [name]: name === 'price' || name === 'atHomeFee' ? parseFloat(value) || 0 : value }));
+    setNewService(prev => ({ ...prev, [name]: name === 'price' || name === 'atHomePrice' || name === 'duration' ? parseFloat(value) || 0 : value }));
   };
 
   const handleAddService = () => {
@@ -178,7 +178,7 @@ export default function ProfileSetupPage() {
       return;
     }
     const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
- setProfile(prev => ({ ...prev, services: [...(Array.isArray(prev.services) ? prev.services : []), serviceToAdd] }));
+    setProfile(prev => ({ ...prev, services: [...(Array.isArray(prev.services) ? prev.services : []), serviceToAdd] }));
     setNewService(initialService); // Reset form
   };
 
@@ -362,9 +362,9 @@ export default function ProfileSetupPage() {
                     {Array.isArray(profile.services) && profile.services.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                             <div>
-                                <p className="font-semibold">{service.name}</p>
+                                <p className="font-semibold">{service.name} ({service.duration || 60} min)</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Preço: R$ {service.price.toFixed(2)} | Taxa Domicílio: R$ {service.atHomeFee.toFixed(2)}
+                                    Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
                                 </p>
                             </div>
                             <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
@@ -376,7 +376,7 @@ export default function ProfileSetupPage() {
                 
                 <div className="mt-6 pt-6 border-t border-border">
                     <p className="font-medium mb-2">Adicionar Novo Serviço</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,auto] gap-4 items-end">
+                    <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 items-end">
                         <div className='space-y-1'>
                             <Label htmlFor="service-name">Nome</Label>
                             <Input id="service-name" name="name" value={newService.name} onChange={handleNewServiceChange} placeholder="Corte de Cabelo" />
@@ -386,8 +386,12 @@ export default function ProfileSetupPage() {
                             <Input id="service-price" name="price" type="number" value={newService.price} onChange={handleNewServiceChange} placeholder="50.00" />
                         </div>
                          <div className='space-y-1'>
-                            <Label htmlFor="service-fee">Taxa Domicílio (R$)</Label>
-                            <Input id="service-fee" name="atHomeFee" type="number" value={newService.atHomeFee} onChange={handleNewServiceChange} placeholder="10.00" />
+                            <Label htmlFor="service-fee">Preço Domicílio (R$)</Label>
+                            <Input id="service-fee" name="atHomePrice" type="number" value={newService.atHomePrice} onChange={handleNewServiceChange} placeholder="70.00" />
+                        </div>
+                        <div className='space-y-1'>
+                            <Label htmlFor="service-duration">Duração (min)</Label>
+                            <Input id="service-duration" name="duration" type="number" value={newService.duration} onChange={handleNewServiceChange} placeholder="60" />
                         </div>
                         <Button type="button" onClick={handleAddService}>Adicionar</Button>
                     </div>
@@ -405,5 +409,3 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
-
-    

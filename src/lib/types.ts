@@ -6,7 +6,8 @@ export interface Service {
   name: string;
   description?: string;
   price: number;
-  atHomeFee: number;
+  atHomePrice?: number;
+  duration?: number; // Duração em minutos
 }
 
 export interface Availability {
