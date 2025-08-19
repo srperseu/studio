@@ -83,6 +83,7 @@ export default function ProfileSetupPage() {
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isCepLoading, setIsCepLoading] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
 
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const fullAddressString = address.street ? `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}` : '';
@@ -172,18 +173,44 @@ export default function ProfileSetupPage() {
     setNewService(prev => ({ ...prev, [name]: name === 'price' || name === 'atHomePrice' || name === 'duration' ? parseFloat(value) || 0 : value }));
   };
 
-  const handleAddService = () => {
+  const handleAddOrUpdateService = () => {
     if (!newService.name || newService.price <= 0) {
       toast({ title: 'Erro', description: 'Por favor, preencha o nome do serviço e um preço válido.', variant: 'destructive' });
       return;
     }
-    const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
-    setProfile(prev => ({ ...prev, services: [...(Array.isArray(prev.services) ? prev.services : []), serviceToAdd] }));
+    
+    if (editingServiceId) {
+      // Update existing service
+      setProfile(prev => ({
+        ...prev,
+        services: prev.services?.map(s => s.id === editingServiceId ? { ...s, ...newService, id: editingServiceId } : s)
+      }));
+      toast({ title: 'Sucesso', description: 'Serviço atualizado!' });
+    } else {
+      // Add new service
+      const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
+      setProfile(prev => ({ ...prev, services: [...(Array.isArray(prev.services) ? prev.services : []), serviceToAdd] }));
+    }
+    
     setNewService(initialService); // Reset form
+    setEditingServiceId(null); // Exit editing mode
+  };
+
+  const handleEditService = (service: Service) => {
+    setEditingServiceId(service.id);
+    setNewService(service);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingServiceId(null);
+    setNewService(initialService);
   };
 
   const handleRemoveService = (serviceId: string) => {
     setProfile(prev => ({ ...prev, services: prev.services?.filter(s => s.id !== serviceId) }));
+    if(editingServiceId === serviceId) {
+        handleCancelEdit();
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -367,15 +394,20 @@ export default function ProfileSetupPage() {
                                     Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
                                 </p>
                             </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
-                                <Icons.X className="h-4 w-4 text-destructive" />
-                            </Button>
+                             <div className="flex items-center gap-2">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleEditService(service)}>
+                                    <Icons.Pencil className="h-4 w-4 text-primary" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
+                                    <Icons.X className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
                 
                 <div className="mt-6 pt-6 border-t border-border">
-                    <p className="font-medium mb-2">Adicionar Novo Serviço</p>
+                    <p className="font-medium mb-2">{editingServiceId ? 'Editando Serviço' : 'Adicionar Novo Serviço'}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 items-end">
                         <div className='space-y-1'>
                             <Label htmlFor="service-name">Nome</Label>
@@ -386,14 +418,17 @@ export default function ProfileSetupPage() {
                             <Input id="service-price" name="price" type="number" value={newService.price} onChange={handleNewServiceChange} placeholder="50.00" />
                         </div>
                          <div className='space-y-1'>
-                            <Label htmlFor="service-fee">Preço Domicílio (R$)</Label>
-                            <Input id="service-fee" name="atHomePrice" type="number" value={newService.atHomePrice} onChange={handleNewServiceChange} placeholder="70.00" />
+                            <Label htmlFor="service-atHomePrice">Preço Domicílio (R$)</Label>
+                            <Input id="service-atHomePrice" name="atHomePrice" type="number" value={newService.atHomePrice} onChange={handleNewServiceChange} placeholder="70.00" />
                         </div>
                         <div className='space-y-1'>
                             <Label htmlFor="service-duration">Duração (min)</Label>
                             <Input id="service-duration" name="duration" type="number" value={newService.duration} onChange={handleNewServiceChange} placeholder="60" />
                         </div>
-                        <Button type="button" onClick={handleAddService}>Adicionar</Button>
+                        <Button type="button" onClick={handleAddOrUpdateService}>{editingServiceId ? 'Salvar' : 'Adicionar'}</Button>
+                        {editingServiceId && (
+                           <Button type="button" variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
+                        )}
                     </div>
                 </div>
               </Card>
