@@ -4,6 +4,7 @@ import type { Timestamp } from 'firebase/firestore';
 export interface Service {
   id: string;
   name: string;
+  description?: string;
   price: number;
   atHomeFee: number;
 }

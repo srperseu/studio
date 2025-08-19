@@ -23,8 +23,6 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, ChevronsUpDown } from 'lucide-react';
 
 
 const dayOfWeekMap = [
@@ -59,7 +57,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   
   const [travelInfo, setTravelInfo] = useState<{distance: string; duration: string} | null>(null);
   const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
 
 
   const selectedService = useMemo(() => {
@@ -70,7 +67,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const finalPrice = useMemo(() => {
     if (!selectedService) return 0;
     if (bookingType === 'atHome' && selectedService.atHomeFee) {
-        return selectedService.atHomeFee;
+        return selectedService.price + selectedService.atHomeFee;
     }
     return selectedService.price;
   }, [selectedService, bookingType]);
@@ -262,71 +259,48 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                     <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} required disabled={!!user}/>
                     {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
-                <div className="space-y-4">
-                    <div>
-                        <Label htmlFor="service" className="block text-sm font-medium text-muted-foreground mb-1">Serviço</Label>
-                        <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={isComboboxOpen}
-                                className="w-full justify-between"
-                                >
-                                {selectedServiceId
-                                    ? barber.services?.find((service) => service.id === selectedServiceId)?.name
-                                    : "Selecione um serviço..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                                <Command>
-                                <CommandInput placeholder="Buscar serviço..." />
-                                <CommandList>
-                                    <CommandEmpty>Nenhum serviço encontrado.</CommandEmpty>
-                                    <CommandGroup>
-                                    {barber.services?.map((service) => (
-                                        <CommandItem
-                                        key={service.id}
-                                        value={service.name}
-                                        onSelect={() => {
-                                            setSelectedServiceId(service.id);
-                                            setIsComboboxOpen(false);
-                                        }}
-                                        >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedServiceId === service.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        {service.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                        {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
-                    </div>
-
-                    {selectedService && (
-                        <div>
-                            <Label className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</Label>
-                            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as 'inShop' | 'atHome')} className="flex gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="inShop" id="inShop" />
-                                    <Label htmlFor="inShop">Na Barbearia (R$ {selectedService.price.toFixed(2)})</Label>
+                
+                <div>
+                    <Label className="block text-sm font-medium text-muted-foreground mb-2">Serviço</Label>
+                    <RadioGroup
+                        value={selectedServiceId}
+                        onValueChange={setSelectedServiceId}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1"
+                    >
+                    {barber.services?.map((service) => (
+                        <div key={service.id}>
+                            <RadioGroupItem value={service.id} id={service.id} className="peer sr-only" />
+                            <Label
+                                htmlFor={service.id}
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between w-full">
+                                    <p className="font-semibold">{service.name}</p>
+                                    <p className="font-bold text-lg">R$ {service.price.toFixed(2)}</p>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomeFee || selectedService.atHomeFee <= 0}/>
-                                    <Label htmlFor="atHome">Em Domicílio (R$ {selectedService.atHomeFee?.toFixed(2)})</Label>
-                                </div>
-                            </RadioGroup>
+                            </Label>
                         </div>
-                    )}
+                    ))}
+                    </RadioGroup>
+                    {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
                 </div>
+
+                {selectedService && (
+                    <div>
+                        <Label className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</Label>
+                        <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as 'inShop' | 'atHome')} className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="inShop" id="inShop" />
+                                <Label htmlFor="inShop">Na Barbearia (R$ {selectedService.price.toFixed(2)})</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomeFee || selectedService.atHomeFee <= 0}/>
+                                <Label htmlFor="atHome">Em Domicílio (+ R$ {selectedService.atHomeFee?.toFixed(2)})</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                )}
+                
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                     <Label htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">Data</Label>
