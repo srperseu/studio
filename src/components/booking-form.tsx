@@ -59,7 +59,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
 
   const selectedService = useMemo(() => {
-    return barber.services.find(s => s.id === selectedServiceId);
+    // Ensure barber.services is an array before calling find
+    if (!Array.isArray(barber.services)) return undefined;
+    return barber.services.find((s: Service) => s.id === selectedServiceId);
   }, [selectedServiceId, barber.services]);
 
   const finalPrice = useMemo(() => {
