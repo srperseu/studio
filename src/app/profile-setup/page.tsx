@@ -76,7 +76,6 @@ export default function ProfileSetupPage() {
     availability: defaultAvailability,
     services: [],
   });
-  const [services, setServices] = useState<Service[]>([]);
   const [newService, setNewService] = useState<Service>(initialService);
   const [address, setAddress] = useState<Address>(initialAddress);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -101,8 +100,8 @@ export default function ProfileSetupPage() {
              ...prev, 
              ...data,
              availability: data.availability || defaultAvailability,
+             services: data.services || [],
             }));
-          setServices(data.services || []);
           if (data.address) {
             setAddress(prev => ({ ...prev, ...data.address }));
           }
@@ -179,12 +178,12 @@ export default function ProfileSetupPage() {
       return;
     }
     const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
-    setServices(prev => [...prev, serviceToAdd]);
+    setProfile(prev => ({ ...prev, services: [...(prev.services || []), serviceToAdd] }));
     setNewService(initialService); // Reset form
   };
 
   const handleRemoveService = (serviceId: string) => {
-    setServices(prev => prev.filter(s => s.id !== serviceId));
+    setProfile(prev => ({ ...prev, services: prev.services?.filter(s => s.id !== serviceId) }));
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,7 +217,6 @@ export default function ProfileSetupPage() {
       const finalAddress = { ...address, fullAddress: completeAddress };
       const dataToSave = { 
         ...profile, 
-        services,
         address: finalAddress,
         coordinates: coordinates,
         profileComplete: true 
@@ -361,7 +359,7 @@ export default function ProfileSetupPage() {
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Meu Catálogo de Serviços</CardTitle>
                 
                 <div className="space-y-4">
-                    {services.map((service) => (
+                    {profile.services?.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                             <div>
                                 <p className="font-semibold">{service.name}</p>
@@ -407,3 +405,4 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
+
