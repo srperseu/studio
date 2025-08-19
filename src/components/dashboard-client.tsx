@@ -49,7 +49,7 @@ export function DashboardClient() {
             setBarberData({
                 id: barberSnap.id,
                 ...data,
-                services: data.services || [], // Garante que services seja sempre um array
+                services: data.services || [],
              } as Barber);
           }
 
@@ -445,5 +445,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
