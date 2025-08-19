@@ -96,9 +96,10 @@ export default function ProfileSetupPage() {
         const docSnap = await getDoc(barberRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as Barber;
+          const { services, ...restOfData } = data;
           setProfile(prev => ({
              ...prev, 
-             ...data,
+             ...restOfData,
              availability: data.availability || defaultAvailability,
              services: data.services || [],
             }));
@@ -405,3 +406,5 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
+
+    
