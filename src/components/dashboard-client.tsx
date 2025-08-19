@@ -125,7 +125,7 @@ export function DashboardClient() {
     
     const reminderDetails = {
       clientName: appointment.clientName,
-      service: appointment.service,
+      service: appointment.serviceName,
       date: appointment.date,
       time: appointment.time,
     };
@@ -198,7 +198,7 @@ export function DashboardClient() {
           )}>
             <div className="flex-grow">
               <p className="font-bold text-lg text-primary">{app.clientName}</p>
-              <p className="text-muted-foreground">{app.service}</p>
+              <p className="text-muted-foreground">{app.serviceName} - R$ {app.servicePrice.toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex gap-2 pt-2">
                 <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90')}>
@@ -388,8 +388,9 @@ export function DashboardClient() {
               </div>
               <div>
                 <h3 className="font-bold text-primary">Serviços</h3>
-                {barberData.services?.inShop?.active && <p className="text-muted-foreground">Na Barbearia: R$ {barberData.services.inShop.price}</p>}
-                {barberData.services?.atHome?.active && <p className="text-muted-foreground">Em Domicílio: R$ {barberData.services.atHome.price}</p>}
+                {barberData.services?.map(service => (
+                    <p key={service.id} className="text-muted-foreground">{service.name}: R$ {service.price.toFixed(2)}</p>
+                ))}
               </div>
               <div>
                 <h3 className="font-bold text-primary">Horários</h3>

@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
 import { revalidatePath } from 'next/cache';
-import type { Barber } from '@/lib/types';
+import type { Barber, Service } from '@/lib/types';
 
 // As funções de signUp e signIn foram movidas para o hook useAuth para serem executadas no lado do cliente.
 // A função de updateProfile foi movida para o lado do cliente para garantir o contexto de autenticação.
@@ -59,27 +59,26 @@ export async function createBooking(
   barberId: string,
   clientUid: string,
   clientName: string,
-  selectedService: string,
+  selectedService: Service,
+  bookingType: 'inShop' | 'atHome',
   selectedDate: string,
   selectedTime: string
 ) {
   try {
-    if (!selectedService || typeof selectedService !== 'string' || !selectedService.includes('|')) {
+    if (!selectedService || !selectedService.name || !selectedService.price) {
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
-
-    const serviceParts = selectedService.split('|');
-    if (serviceParts.length !== 2 || !serviceParts[0] || !serviceParts[1]) {
-        return { success: false, message: 'Formato de serviço inválido.'};
-    }
-    const [serviceName, serviceType] = serviceParts;
-
+    
+    const finalPrice = bookingType === 'atHome' 
+        ? selectedService.price + (selectedService.atHomeFee || 0)
+        : selectedService.price;
 
     await addDoc(collection(db, `barbers/${barberId}/appointments`), {
       clientName,
       clientUid, // Store the client's UID
-      service: serviceName,
-      type: serviceType,
+      serviceName: selectedService.name,
+      servicePrice: finalPrice,
+      type: bookingType,
       date: selectedDate, // Salva a data como string 'YYYY-MM-DD'
       time: selectedTime,
       createdAt: serverTimestamp(),

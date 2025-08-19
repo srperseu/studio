@@ -126,13 +126,17 @@ export function ClientDashboard() {
     return (
         <Card className={cn("bg-card border-border shadow-lg flex flex-col")}>
             <CardHeader>
-                <CardTitle className="text-primary">{app.service}</CardTitle>
+                <CardTitle className="text-primary">{app.serviceName}</CardTitle>
                 <p className="text-sm text-muted-foreground">com {app.barber?.fullName || 'Barbeiro desconhecido'}</p>
             </CardHeader>
             <CardContent className="flex-grow space-y-3">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.Calendar className="h-4 w-4" />
                     <span>{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' })} às {app.time}</span>
+                </div>
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icons.DollarSign className="h-4 w-4" />
+                    <span>R$ {app.servicePrice.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.MapPin className="h-4 w-4" />

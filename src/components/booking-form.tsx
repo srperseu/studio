@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-import type { Barber, Client, GeoPoint } from '@/lib/types';
+import type { Barber, Client, GeoPoint, Service } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import { Icons } from './icons';
 import { useAuth } from '@/hooks/use-auth';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
@@ -43,7 +45,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const { toast } = useToast();
 
   const [clientName, setClientName] = useState('');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [bookingType, setBookingType] = useState<'inShop' | 'atHome'>('inShop');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('');
   
@@ -54,6 +57,17 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   
   const [travelInfo, setTravelInfo] = useState<{distance: string; duration: string} | null>(null);
   const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
+
+  const selectedService = useMemo(() => {
+    return barber.services.find(s => s.id === selectedServiceId);
+  }, [selectedServiceId, barber.services]);
+
+  const finalPrice = useMemo(() => {
+    if (!selectedService) return 0;
+    return bookingType === 'atHome' 
+        ? selectedService.price + (selectedService.atHomeFee || 0)
+        : selectedService.price;
+  }, [selectedService, bookingType]);
 
   useEffect(() => {
     async function fetchClientProfile() {
@@ -142,7 +156,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para agendar.", variant: "destructive" });
         return;
     }
-    if (!validateForm() || !selectedDate) {
+    if (!validateForm() || !selectedDate || !selectedService) {
         return;
     }
     
@@ -154,13 +168,14 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             user.uid,
             clientName,
             selectedService,
+            bookingType,
             format(selectedDate, 'yyyy-MM-dd'),
             selectedTime
         );
 
         if (result.success) {
           toast({ title: "Sucesso!", description: `Agendamento com ${barber.fullName} realizado!` });
-          setSelectedService('');
+          setSelectedServiceId('');
           setSelectedDate(undefined);
           setSelectedTime('');
           setErrors({});
@@ -199,9 +214,15 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             </CardHeader>
             <CardContent>
                  <div className="border-t border-border pt-4">
-                    <h3 className="font-semibold mb-2">Serviços Disponíveis</h3>
-                    {barber.services?.inShop?.active && <p className="text-muted-foreground">Corte na Barbearia - R$ {barber.services.inShop.price}</p>}
-                    {barber.services?.atHome?.active && <p className="text-muted-foreground">Corte em Domicílio - R$ {barber.services.atHome.price}</p>}
+                    <h3 className="font-semibold mb-2">Catálogo de Serviços</h3>
+                    <div className="space-y-1 text-muted-foreground">
+                        {barber.services?.map(s => (
+                            <div key={s.id} className="flex justify-between">
+                                <span>{s.name}</span>
+                                <span>R$ {s.price.toFixed(2)}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="border-t border-border pt-4 mt-4">
@@ -229,34 +250,53 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                 <CardDescription>Preencha os detalhes abaixo para marcar seu horário.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={onSubmit} className="space-y-4">
+                <form onSubmit={onSubmit} className="space-y-6">
                 <div>
-                    <label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground">Seu Nome</label>
-                    <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1" required disabled={!!user}/>
+                    <Label htmlFor="clientName" className="block text-sm font-medium text-muted-foreground mb-1">Seu Nome</Label>
+                    <Input id="clientName" value={clientName} onChange={(e) => setClientName(e.target.value)} required disabled={!!user}/>
                     {errors.clientName && <p className="text-destructive text-xs mt-1">{errors.clientName}</p>}
                 </div>
-                <div>
-                    <label htmlFor="service" className="block text-sm font-medium text-muted-foreground">Serviço</label>
-                    <Select onValueChange={setSelectedService} value={selectedService}>
-                        <SelectTrigger id="service" className="mt-1">
-                            <SelectValue placeholder="Selecione um serviço" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {barber.services?.inShop?.active && <SelectItem value={`Corte na Barbearia|inShop`}>Corte na Barbearia (R$ {barber.services.inShop.price})</SelectItem>}
-                            {barber.services?.atHome?.active && <SelectItem value={`Corte em Domicílio|atHome`}>Corte em Domicílio (R$ {barber.services.atHome.price})</SelectItem>}
-                        </SelectContent>
-                    </Select>
-                    {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="service" className="block text-sm font-medium text-muted-foreground mb-1">Serviço</Label>
+                        <Select onValueChange={setSelectedServiceId} value={selectedServiceId}>
+                            <SelectTrigger id="service">
+                                <SelectValue placeholder="Selecione um serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {barber.services?.map(service => (
+                                    <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.selectedService && <p className="text-destructive text-xs mt-1">{errors.selectedService}</p>}
+                    </div>
+
+                    {selectedService && (
+                        <div>
+                            <Label className="block text-sm font-medium text-muted-foreground mb-2">Local de Atendimento</Label>
+                            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as any)} className="flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="inShop" id="inShop" />
+                                    <Label htmlFor="inShop">Na Barbearia</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomeFee || selectedService.atHomeFee <= 0}/>
+                                    <Label htmlFor="atHome">Em Domicílio (+ R$ {selectedService.atHomeFee.toFixed(2)})</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                    )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-muted-foreground">Data</label>
+                    <Label htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">Data</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                         <Button
                             variant={"outline"}
                             className={cn(
-                            "w-full justify-start text-left font-normal mt-1",
+                            "w-full justify-start text-left font-normal",
                             !selectedDate && "text-muted-foreground"
                             )}
                         >
@@ -278,12 +318,19 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                     {errors.selectedDate && <p className="text-destructive text-xs mt-1">{errors.selectedDate}</p>}
                     </div>
                     <div>
-                    <label htmlFor="time" className="block text-sm font-medium text-muted-foreground">Horário</label>
-                    <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="mt-1" disabled={timeSlot.disabled} min={timeSlot.min} max={timeSlot.max} />
+                    <Label htmlFor="time" className="block text-sm font-medium text-muted-foreground mb-1">Horário</Label>
+                    <Input type="time" id="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} disabled={timeSlot.disabled} min={timeSlot.min} max={timeSlot.max} />
                     {errors.selectedTime && <p className="text-destructive text-xs mt-1">{errors.selectedTime}</p>}
                     {timeSlot.error && <p className="text-destructive text-xs mt-1">{timeSlot.error}</p>}
                     </div>
                 </div>
+
+                {selectedService && (
+                    <div className="text-right font-bold text-lg">
+                        Total: R$ {finalPrice.toFixed(2)}
+                    </div>
+                )}
+
                 <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
                     {isLoading && <Icons.Spinner className="mr-2" />}
                     {isLoading ? 'Agendando...' : 'Agendar Horário'}

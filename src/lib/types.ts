@@ -1,14 +1,11 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
-export interface ServiceDetail {
-  active: boolean;
-  price: string;
-}
-
-export interface Services {
-  inShop: ServiceDetail;
-  atHome: ServiceDetail;
+export interface Service {
+  id: string;
+  name: string;
+  price: number;
+  atHomeFee: number;
 }
 
 export interface Availability {
@@ -48,7 +45,7 @@ export interface Barber {
   address?: Address;
   coordinates?: GeoPoint;
   availability: Availability;
-  services: Services;
+  services: Service[];
 }
 
 export interface Client {
@@ -66,7 +63,8 @@ export interface Appointment {
   id: string;
   clientName: string;
   clientUid: string;
-  service: string;
+  serviceName: string;
+  servicePrice: number;
   type: 'inShop' | 'atHome';
   date: string; // "YYYY-MM-DD"
   time: string; // "HH:MM"

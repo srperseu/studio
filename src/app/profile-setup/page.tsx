@@ -16,9 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Icons } from '@/components/icons';
-import type { Barber, GeoPoint, Address } from '@/lib/types';
+import type { Barber, GeoPoint, Address, Service } from '@/lib/types';
 import { Header } from '@/components/header';
 
 const defaultAvailability = {
@@ -41,6 +40,9 @@ const initialAddress: Address = {
     state: '',
     fullAddress: '',
 };
+
+const initialService: Service = { id: '', name: '', price: 0, atHomeFee: 0 };
+
 
 async function getCoordinatesForAddress(address: string, apiKey: string): Promise<GeoPoint | null> {
     if (!address || !apiKey) return null;
@@ -71,11 +73,10 @@ export default function ProfileSetupPage() {
     description: '',
     address: initialAddress,
     availability: defaultAvailability,
-    services: {
-      inShop: { active: true, price: '' },
-      atHome: { active: false, price: '' },
-    },
+    services: [],
   });
+  const [services, setServices] = useState<Service[]>([]);
+  const [newService, setNewService] = useState<Service>(initialService);
   const [address, setAddress] = useState<Address>(initialAddress);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,10 +100,9 @@ export default function ProfileSetupPage() {
              ...prev, 
              ...data,
              availability: data.availability || defaultAvailability,
-             services: data.services || { inShop: { active: true, price: '' }, atHome: { active: false, price: '' } }
             }));
+          setServices(data.services || []);
           if (data.address) {
-            // Merge fetched data with initial state to prevent undefined values
             setAddress(prev => ({ ...prev, ...data.address }));
           }
           if (data.photoURL) setPreviewImage(data.photoURL);
@@ -166,9 +166,26 @@ export default function ProfileSetupPage() {
   const handleAvailabilityChange = (day: string, field: string, value: any) => {
     setProfile(prev => ({ ...prev, availability: { ...prev.availability, [day]: { ...prev.availability![day], [field]: value } } }));
   };
-  const handleServiceChange = (type: 'inShop' | 'atHome', field: string, value: any) => {
-    setProfile(prev => ({ ...prev, services: { ...prev.services, [type]: { ...prev.services![type], [field]: value } } }));
+  
+  const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewService(prev => ({ ...prev, [name]: name === 'price' || name === 'atHomeFee' ? parseFloat(value) || 0 : value }));
   };
+
+  const handleAddService = () => {
+    if (!newService.name || newService.price <= 0) {
+      toast({ title: 'Erro', description: 'Por favor, preencha o nome do serviço e um preço válido.', variant: 'destructive' });
+      return;
+    }
+    const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
+    setServices(prev => [...prev, serviceToAdd]);
+    setNewService(initialService); // Reset form
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setServices(prev => prev.filter(s => s.id !== serviceId));
+  };
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -200,6 +217,7 @@ export default function ProfileSetupPage() {
       const finalAddress = { ...address, fullAddress: completeAddress };
       const dataToSave = { 
         ...profile, 
+        services,
         address: finalAddress,
         coordinates: coordinates,
         profileComplete: true 
@@ -339,32 +357,41 @@ export default function ProfileSetupPage() {
               </Card>
               
               <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Serviços e Preços</CardTitle>
+                <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Meu Catálogo de Serviços</CardTitle>
+                
                 <div className="space-y-4">
-                  <div className="p-3 bg-muted/50 rounded-md">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center">
-                        <Switch id="inShop" checked={profile.services!.inShop.active} onCheckedChange={(checked) => handleServiceChange('inShop', 'active', checked)} />
-                        <Label htmlFor="inShop" className="ml-3 font-medium flex items-center gap-2"><Icons.User /> Atendimento na Barbearia</Label>
-                      </div>
-                      <div className="relative w-36">
-                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="number" placeholder="Preço" value={profile.services!.inShop.price} onChange={(e) => handleServiceChange('inShop', 'price', e.target.value)} disabled={!profile.services!.inShop.active} className="w-full pl-10 disabled:opacity-50" />
-                      </div>
+                    {services.map((service) => (
+                        <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                            <div>
+                                <p className="font-semibold">{service.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Preço: R$ {service.price.toFixed(2)} | Taxa Domicílio: R$ {service.atHomeFee.toFixed(2)}
+                                </p>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
+                                <Icons.X className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="mt-6 pt-6 border-t border-border">
+                    <p className="font-medium mb-2">Adicionar Novo Serviço</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,auto] gap-4 items-end">
+                        <div className='space-y-1'>
+                            <Label htmlFor="service-name">Nome</Label>
+                            <Input id="service-name" name="name" value={newService.name} onChange={handleNewServiceChange} placeholder="Corte de Cabelo" />
+                        </div>
+                         <div className='space-y-1'>
+                            <Label htmlFor="service-price">Preço (R$)</Label>
+                            <Input id="service-price" name="price" type="number" value={newService.price} onChange={handleNewServiceChange} placeholder="50.00" />
+                        </div>
+                         <div className='space-y-1'>
+                            <Label htmlFor="service-fee">Taxa Domicílio (R$)</Label>
+                            <Input id="service-fee" name="atHomeFee" type="number" value={newService.atHomeFee} onChange={handleNewServiceChange} placeholder="10.00" />
+                        </div>
+                        <Button type="button" onClick={handleAddService}>Adicionar</Button>
                     </div>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-md">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center">
-                        <Switch id="atHome" checked={profile.services!.atHome.active} onCheckedChange={(checked) => handleServiceChange('atHome', 'active', checked)} />
-                        <Label htmlFor="atHome" className="ml-3 font-medium flex items-center gap-2"><Icons.Home /> Atendimento em Domicílio</Label>
-                      </div>
-                      <div className="relative w-36">
-                        <Icons.DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="number" placeholder="Preço" value={profile.services!.atHome.price} onChange={(e) => handleServiceChange('atHome', 'price', e.target.value)} disabled={!profile.services!.atHome.active} className="w-full pl-10 disabled:opacity-50" />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </Card>
               
