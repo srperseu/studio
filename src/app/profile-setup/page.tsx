@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
 import type { Barber, GeoPoint, Address, Service } from '@/lib/types';
 import { Header } from '@/components/header';
+import { Switch } from '@/components/ui/switch';
 
 const defaultAvailability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -339,7 +340,7 @@ export default function ProfileSetupPage() {
               <Card className="p-6 bg-card border-none shadow-md">
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Calendar /> Horários de Atendimento</CardTitle>
                 <div className="space-y-4">
-                  {Object.keys(profile.availability!).map(day => (
+                  {profile.availability && Object.keys(profile.availability).map(day => (
                     <div key={day} className="grid grid-cols-1 sm:grid-cols-[1fr,2fr] gap-4 items-center p-3 bg-muted/50 rounded-md">
                       <div className="flex items-center">
                         <Switch id={`check-${day}`} checked={profile.availability![day].active} onCheckedChange={(checked) => handleAvailabilityChange(day, 'active', checked)} />
