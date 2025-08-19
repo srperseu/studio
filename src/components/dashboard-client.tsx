@@ -46,18 +46,9 @@ export function DashboardClient() {
           const barberSnap = await getDoc(barberRef);
           if (barberSnap.exists()) {
             const data = barberSnap.data();
-            setBarberData({ 
+            setBarberData({
               id: barberSnap.id, 
-              uid: data.uid,
-              fullName: data.fullName,
-              email: data.email,
-              phone: data.phone,
-              profileComplete: data.profileComplete,
-              photoURL: data.photoURL,
-              description: data.description,
-              address: data.address,
-              coordinates: data.coordinates,
-              availability: data.availability,
+              ...data,
               services: data.services || [],
             } as Barber);
           }
@@ -226,7 +217,7 @@ export function DashboardClient() {
                 {context === 'pending' ? (
                   <>
                     <Button size="sm" onClick={() => handleUpdateStatus(app.id, 'complete')} disabled={isUpdating === app.id} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
-                      {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Check className="mr-2 h-4 w-4" />}
+                      {isUpdating === app.id ? <Icons.Spinner /> : <><Icons.Check className="mr-2 h-4 w-4" /></>}
                       Confirmar
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(app.id, 'no-show')} disabled={isUpdating === app.id} className="w-full sm:w-auto">
@@ -454,3 +445,6 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
+    
