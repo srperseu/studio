@@ -197,8 +197,12 @@ export function DashboardClient() {
       }
 
       const handleRouteClick = () => {
-        if (!barberData?.coordinates || !app.clientCoordinates) {
-          toast({ title: 'Erro', description: 'Coordenadas de origem ou destino não encontradas.', variant: 'destructive' });
+        if (!barberData?.coordinates) {
+          toast({ title: 'Erro de Rota', description: 'As coordenadas do seu endereço não foram encontradas. Verifique seu perfil.', variant: 'destructive' });
+          return;
+        }
+        if (!app.clientCoordinates) {
+          toast({ title: 'Erro de Rota', description: 'Coordenadas do cliente não encontradas para este agendamento.', variant: 'destructive' });
           return;
         }
         const origin = `${barberData.coordinates.lat},${barberData.coordinates.lng}`;
