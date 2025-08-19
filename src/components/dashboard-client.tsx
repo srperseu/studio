@@ -46,11 +46,11 @@ export function DashboardClient() {
           const barberSnap = await getDoc(barberRef);
           if (barberSnap.exists()) {
             const data = barberSnap.data();
-            setBarberData({
-              id: barberSnap.id, 
-              ...data,
-              services: data.services || [],
-            } as Barber);
+             setBarberData({
+                id: barberSnap.id,
+                ...data,
+                services: data.services || [],
+             } as Barber);
           }
 
           const q = query(collection(db, `barbers/${user.uid}/appointments`));
@@ -257,7 +257,7 @@ export function DashboardClient() {
               </div>
             )}
           </div>
-      )
+      );
   }
 
   if (authLoading || isLoading) {
@@ -393,7 +393,7 @@ export function DashboardClient() {
               </div>
               <div>
                 <h3 className="font-bold text-primary">Serviços</h3>
-                {barberData.services?.map(service => (
+                {barberData.services && barberData.services.map(service => (
                     <p key={service.id} className="text-muted-foreground">{service.name}: R$ {service.price.toFixed(2)}</p>
                 ))}
               </div>
@@ -446,5 +446,4 @@ function DashboardSkeleton() {
     )
 }
 
-    
     
