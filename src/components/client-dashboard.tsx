@@ -136,7 +136,7 @@ export function ClientDashboard() {
                 </div>
                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.DollarSign className="h-4 w-4" />
-                    <span>R$ {app.servicePrice.toFixed(2)}</span>
+                    <span>R$ {app.servicePrice !== undefined && app.servicePrice !== null ? app.servicePrice.toFixed(2) : '0.00'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.MapPin className="h-4 w-4" />

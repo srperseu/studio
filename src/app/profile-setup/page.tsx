@@ -178,7 +178,7 @@ export default function ProfileSetupPage() {
       return;
     }
     const serviceToAdd = { ...newService, id: newService.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() };
-    setProfile(prev => ({ ...prev, services: [...(prev.services || []), serviceToAdd] }));
+ setProfile(prev => ({ ...prev, services: [...(Array.isArray(prev.services) ? prev.services : []), serviceToAdd] }));
     setNewService(initialService); // Reset form
   };
 
@@ -359,7 +359,7 @@ export default function ProfileSetupPage() {
                 <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Meu Catálogo de Serviços</CardTitle>
                 
                 <div className="space-y-4">
-                    {profile.services?.map((service) => (
+                    {Array.isArray(profile.services) && profile.services.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                             <div>
                                 <p className="font-semibold">{service.name}</p>
