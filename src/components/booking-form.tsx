@@ -66,8 +66,10 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   const finalPrice = useMemo(() => {
     if (!selectedService) return 0;
-    return bookingType === 'atHome' 
-        ? selectedService.price + (selectedService.atHomeFee || 0)
+    // If atHome is selected, the price is the atHomeFee itself.
+    // Otherwise, it's the regular service price.
+    return bookingType === 'atHome' && selectedService.atHomeFee 
+        ? selectedService.atHomeFee
         : selectedService.price;
   }, [selectedService, bookingType]);
 
@@ -284,7 +286,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="atHome" id="atHome" disabled={!selectedService.atHomeFee || selectedService.atHomeFee <= 0}/>
-                                    <Label htmlFor="atHome">Em Domicílio (+ R$ {selectedService.atHomeFee.toFixed(2)})</Label>
+                                    <Label htmlFor="atHome">Em Domicílio (R$ {selectedService.atHomeFee?.toFixed(2)})</Label>
                                 </div>
                             </RadioGroup>
                         </div>
