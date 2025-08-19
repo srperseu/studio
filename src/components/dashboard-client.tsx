@@ -46,10 +46,10 @@ export function DashboardClient() {
           const barberSnap = await getDoc(barberRef);
           if (barberSnap.exists()) {
             const data = barberSnap.data();
-             setBarberData({
+            setBarberData({
                 id: barberSnap.id,
                 ...data,
-                services: data.services || [],
+                services: data.services || [], // Garante que services seja sempre um array
              } as Barber);
           }
 
@@ -445,5 +445,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
