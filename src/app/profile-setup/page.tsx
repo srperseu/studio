@@ -407,5 +407,3 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
-
-    
