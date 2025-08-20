@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format } from 'date-fns';
+import { format, addMinutes, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -52,7 +52,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     resolver: zodResolver(bookingSchema),
   });
   
-  const { watch, control, setValue, trigger } = form;
+  const { watch, control, setValue, reset } = form;
 
   const selectedServiceId = watch('selectedServiceId');
   const bookingType = watch('bookingType');
@@ -63,6 +63,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const [isTimeLoading, setIsTimeLoading] = useState(false);
   const [travelInfo, setTravelInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [isTravelInfoLoading, setIsTravelInfoLoading] = useState(true);
+  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
 
   const selectedService = useMemo(() => {
     if (!selectedServiceId || !Array.isArray(barber.services)) return undefined;
@@ -93,21 +94,34 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchClientProfile();
   }, [user]);
 
+  // Fetch appointments when date changes
+  useEffect(() => {
+    if (!selectedDate || !barber.id) return;
+    
+    const fetchAppointments = async () => {
+      setIsTimeLoading(true);
+      const q = query(
+        collection(db, `barbers/${barber.id}/appointments`),
+        where('date', '==', format(selectedDate, 'yyyy-MM-dd'))
+      );
+      const querySnapshot = await getDocs(q);
+      const appointments = querySnapshot.docs.map(doc => doc.data() as Appointment);
+      setExistingAppointments(appointments);
+      setIsTimeLoading(false);
+    };
+
+    fetchAppointments();
+  }, [selectedDate, barber.id]);
+
+
+  // Generate time slots when date, service, or appointments change
   useEffect(() => {
     // Reset time when date or service changes
     setValue('selectedTime', ''); 
     if (selectedDate && barber?.availability) {
       const serviceDuration = selectedService?.duration || DEFAULT_APPOINTMENT_DURATION;
       
-      const fetchAppointmentsAndGenerateSlots = async () => {
-        setIsTimeLoading(true);
-        const q = query(
-          collection(db, `barbers/${barber.id}/appointments`),
-          where('date', '==', format(selectedDate, 'yyyy-MM-dd'))
-        );
-        const querySnapshot = await getDocs(q);
-        const existingAppointments = querySnapshot.docs.map(doc => doc.data() as Appointment);
-        
+      const generateSlots = () => {
         const dayOfWeekIndex = selectedDate.getDay();
         const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
         const availabilityForDay = barber.availability[dayOfWeekName];
@@ -116,6 +130,21 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           const slots = [];
           const [startHour, startMinute] = availabilityForDay.start.split(':').map(Number);
           const [endHour, endMinute] = availabilityForDay.end.split(':').map(Number);
+          
+          const getMinutes = (timeStr: string) => {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+          };
+
+          const occupiedSlots = existingAppointments.flatMap(app => {
+            const start = getMinutes(app.time);
+            // Find the service to get its duration
+            const bookedService = barber.services.find(s => s.name === app.serviceName);
+            const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+            const end = start + duration;
+            return { start, end };
+          });
+          
 
           let currentTime = new Date(selectedDate);
           currentTime.setHours(startHour, startMinute, 0, 0);
@@ -124,26 +153,36 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           endTime.setHours(endHour, endMinute, 0, 0);
 
           while (currentTime < endTime) {
-            const timeString = format(currentTime, 'HH:mm');
-            const isBooked = existingAppointments.some(app => app.time === timeString);
+            const slotStart = getMinutes(format(currentTime, 'HH:mm'));
+            const slotEnd = slotStart + serviceDuration;
 
-            if (!isBooked) {
-              slots.push(timeString);
+            const isOccupied = occupiedSlots.some(occupied => 
+                (slotStart < occupied.end && slotEnd > occupied.start)
+            );
+            
+            // Check if the slot fits within the working hours
+            const endOfDayMinutes = getMinutes(availabilityForDay.end);
+            if (slotEnd > endOfDayMinutes) {
+                break;
             }
-            currentTime.setMinutes(currentTime.getMinutes() + serviceDuration);
+
+            if (!isOccupied) {
+              slots.push(format(currentTime, 'HH:mm'));
+            }
+            // Use fixed 15-minute intervals for generating potential slots
+            currentTime.setMinutes(currentTime.getMinutes() + 15);
           }
           setAvailableTimeSlots(slots);
         } else {
           setAvailableTimeSlots([]);
         }
-        setIsTimeLoading(false);
       };
 
-      fetchAppointmentsAndGenerateSlots();
+      generateSlots();
     } else {
       setAvailableTimeSlots([]);
     }
-  }, [selectedDate, barber, selectedService, setValue]);
+  }, [selectedDate, barber, selectedService, setValue, existingAppointments]);
 
 
   useEffect(() => {
@@ -195,7 +234,23 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
       if (result.success) {
         toast({ title: 'Sucesso!', description: `Agendamento com ${barber.fullName} realizado!` });
-        form.reset();
+        
+        // Add the new appointment to the local state to trigger UI update
+        const newAppointment: Appointment = {
+            id: 'temp-' + Date.now(), // temporary id
+            clientName: clientName,
+            clientUid: user.uid,
+            serviceName: selectedService.name,
+            servicePrice: finalPrice,
+            type: data.bookingType,
+            date: format(data.selectedDate, 'yyyy-MM-dd'),
+            time: data.selectedTime,
+            status: 'scheduled',
+            createdAt: new Date() as any, // This is temporary, Firestore will set the real one
+        }
+        setExistingAppointments(prev => [...prev, newAppointment]);
+
+        reset(); // Reset form fields
       } else {
         console.error('Booking failed with message:', result.message);
         toast({
@@ -449,3 +504,5 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
+
+    
