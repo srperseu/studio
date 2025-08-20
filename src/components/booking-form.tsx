@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, parse, set } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -29,7 +29,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
-const MIN_SLOT_DURATION = 5; // Duração mínima de um slot em minutos
 
 const bookingSchema = z.object({
   selectedServiceId: z.string().min(1, { message: 'Selecione um serviço.' }),
@@ -151,7 +150,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       const workStartMinutes = timeToMinutes(availabilityForDay.start);
       const workEndMinutes = timeToMinutes(availabilityForDay.end);
 
-      // Criar lista de blocos ocupados com seus tempos de início e fim
+      // Create a list of occupied blocks with their start and end times
       const occupiedBlocks = existingAppointments
         .map(app => {
             const bookedService = barber.services.find(s => s.name === app.serviceName);
@@ -162,87 +161,30 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         })
         .sort((a, b) => a.start - b.start);
       
-      // Gerar slots disponíveis baseados na duração real do serviço
       const slots: string[] = [];
-      
-      // Determinar o incremento de busca baseado na duração do serviço
-      // Para serviços curtos (5-15 min), usar incremento de 5 minutos
-      // Para serviços médios (20-45 min), usar incremento de 10 minutos  
-      // Para serviços longos (50+ min), usar incremento de 15 minutos
-      let searchIncrement: number;
-      if (serviceDuration <= 15) {
-        searchIncrement = 5;
-      } else if (serviceDuration <= 45) {
-        searchIncrement = 10;
-      } else {
-        searchIncrement = 15;
-      }
+      const searchIncrement = serviceDuration > 0 ? serviceDuration : DEFAULT_APPOINTMENT_DURATION;
 
-      // Começar do início do expediente
-      for (let startTime = workStartMinutes; startTime + serviceDuration <= workEndMinutes; startTime += searchIncrement) {
-        const endTime = startTime + serviceDuration;
+      // Start from the beginning of the workday
+      for (let potentialStartTime = workStartMinutes; potentialStartTime + serviceDuration <= workEndMinutes; potentialStartTime += searchIncrement) {
+        const potentialEndTime = potentialStartTime + serviceDuration;
         let isAvailable = true;
 
-        // Verificar se este slot conflita com algum agendamento existente
+        // Check if this slot conflicts with any existing appointment
         for (const block of occupiedBlocks) {
-          // Verificar sobreposição: novo slot não pode começar antes do fim de um bloco existente
-          // e não pode terminar depois do início de um bloco existente
-          if (startTime < block.end && endTime > block.start) {
+          // Check for overlap: new slot cannot start before an existing block ends
+          // and cannot end after an existing block starts
+          if (potentialStartTime < block.end && potentialEndTime > block.start) {
             isAvailable = false;
             break;
           }
         }
 
         if (isAvailable) {
-          slots.push(minutesToTime(startTime));
+          slots.push(minutesToTime(potentialStartTime));
         }
       }
-
-      // Para uma experiência mais fluida, também verificar se há "gaps" entre agendamentos
-      // onde o serviço atual caberia perfeitamente
-      if (occupiedBlocks.length > 0) {
-        // Verificar gap antes do primeiro agendamento
-        if (occupiedBlocks[0].start - workStartMinutes >= serviceDuration) {
-          for (let time = workStartMinutes; time + serviceDuration <= occupiedBlocks[0].start; time += searchIncrement) {
-            const slot = minutesToTime(time);
-            if (!slots.includes(slot)) {
-              slots.push(slot);
-            }
-          }
-        }
-
-        // Verificar gaps entre agendamentos
-        for (let i = 0; i < occupiedBlocks.length - 1; i++) {
-          const gapStart = occupiedBlocks[i].end;
-          const gapEnd = occupiedBlocks[i + 1].start;
-          const gapDuration = gapEnd - gapStart;
-
-          if (gapDuration >= serviceDuration) {
-            for (let time = gapStart; time + serviceDuration <= gapEnd; time += searchIncrement) {
-              const slot = minutesToTime(time);
-              if (!slots.includes(slot)) {
-                slots.push(slot);
-              }
-            }
-          }
-        }
-
-        // Verificar gap depois do último agendamento
-        const lastBlock = occupiedBlocks[occupiedBlocks.length - 1];
-        if (workEndMinutes - lastBlock.end >= serviceDuration) {
-          for (let time = lastBlock.end; time + serviceDuration <= workEndMinutes; time += searchIncrement) {
-            const slot = minutesToTime(time);
-            if (!slots.includes(slot)) {
-              slots.push(slot);
-            }
-          }
-        }
-      }
-
-      // Remover duplicatas e ordenar
-      const uniqueSlots = [...new Set(slots)].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
       
-      setAvailableTimeSlots(uniqueSlots);
+      setAvailableTimeSlots(slots);
       setIsTimeLoading(false);
     } else {
       setAvailableTimeSlots([]);
@@ -305,8 +247,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             id: 'temp-' + Date.now(), // temporary id
             clientName: clientName,
             clientUid: user.uid,
-            clientCoordinates: null,
-            clientFullAddress: '',
+            clientCoordinates: null, // This is okay as it is only used for the barber's dashboard
+            clientFullAddress: '',  // This is okay as it is only used for the barber's dashboard
             serviceName: selectedService.name,
             servicePrice: finalPrice,
             type: data.bookingType,
@@ -571,3 +513,5 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
+
+    
