@@ -107,6 +107,10 @@ export function UserNav() {
                 <Icons.Calendar className="mr-2" />
                 <span>Meus Agendamentos</span>
               </DropdownMenuItem>
+               <DropdownMenuItem onSelect={() => router.push('/dashboard/client/history')}>
+                <Icons.Clock className="mr-2" />
+                <span>Histórico</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/profile-setup/client')}>
                 <Icons.User className="mr-2" />
                 <span>Meu Perfil</span>
