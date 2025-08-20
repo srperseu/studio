@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import type { Appointment, Barber } from '@/lib/types';
+import type { Appointment, Barber, Client, GeoPoint } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
@@ -34,15 +33,24 @@ export function ClientDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<AppointmentWithBarber[]>([]);
+  const [clientData, setClientData] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
 
-  const fetchAppointments = async () => {
+  const fetchClientAndAppointments = async () => {
     if (user) {
       setIsLoading(true);
       try {
+        // Fetch client data
+        const clientRef = doc(db, 'clients', user.uid);
+        const clientSnap = await getDoc(clientRef);
+        if (clientSnap.exists()) {
+          setClientData({ id: clientSnap.id, ...clientSnap.data() } as Client);
+        }
+
+        // Fetch barbers and appointments
         const allBarbers = await getAllBarbers();
         const allAppointments: AppointmentWithBarber[] = [];
 
@@ -83,7 +91,7 @@ export function ClientDashboard() {
 
   useEffect(() => {
     if (!user) return;
-    fetchAppointments();
+    fetchClientAndAppointments();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -109,7 +117,7 @@ export function ClientDashboard() {
     const result = await cancelAppointmentAction(appointment.barberId, appointment.id);
     if (result.success) {
         toast({ description: 'Agendamento cancelado com sucesso.' });
-        fetchAppointments(); // Re-fetch to update lists
+        fetchClientAndAppointments(); // Re-fetch to update lists
     } else {
         toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
@@ -123,6 +131,22 @@ export function ClientDashboard() {
     const isPast = appDate < today;
     const isActionable = app.status === 'scheduled' && !isPast;
     
+    const handleRouteClick = () => {
+        if (!app.barber?.coordinates) {
+          toast({ title: 'Erro de Rota', description: 'O endereço do barbeiro não foi encontrado.', variant: 'destructive' });
+          return;
+        }
+        let origin = '';
+        if (clientData?.coordinates) {
+          origin = `${clientData.coordinates.lat},${clientData.coordinates.lng}`;
+        }
+        
+        const destination = `${app.barber.coordinates.lat},${app.barber.coordinates.lng}`;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+        window.open(url, '_blank');
+      };
+
+
     return (
         <Card className={cn("bg-card border-border shadow-lg flex flex-col")}>
             <CardHeader>
@@ -142,10 +166,16 @@ export function ClientDashboard() {
                     <Icons.MapPin className="h-4 w-4" />
                     <span>{app.type === 'inShop' ? (app.barber?.address?.fullAddress || 'Endereço não informado') : (app.clientFullAddress || 'Seu endereço') }</span>
                 </div>
-                 <div className='flex gap-2 pt-2'>
-                    <Badge variant={app.type === 'inShop' ? 'secondary' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : '')}>
+                 <div className='flex items-center gap-2 pt-2'>
+                    <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90')}>
                         {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                     </Badge>
+                    {app.type === 'inShop' && (
+                        <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs" onClick={handleRouteClick}>
+                           <Icons.MapPin className="mr-1 h-3 w-3"/>
+                           Ver Rota
+                        </Button>
+                    )}
                 </div>
             </CardContent>
             {isActionable && (

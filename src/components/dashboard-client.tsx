@@ -222,16 +222,15 @@ export function DashboardClient() {
               <p className="text-muted-foreground">{app.serviceName} - R$ {(app.servicePrice ?? 0).toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
-                {app.type === 'inShop' ? (
-                     <Badge variant={'default'} className={'bg-primary/90'}>Na Barbearia</Badge>
-                ) : (
-                    <>
-                     <Badge variant={'default'} className={'bg-accent hover:bg-accent/90'}>Em Domicílio</Badge>
-                     <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs" onClick={handleRouteClick}>
+                 <Badge variant={'default'} className={cn(app.type === 'inShop' ? 'bg-primary/90' : 'bg-accent hover:bg-accent/90')}>
+                    {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
+                 </Badge>
+
+                {app.type === 'atHome' && (
+                    <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs" onClick={handleRouteClick}>
                         <Icons.MapPin className="mr-1 h-3 w-3"/>
                         Ver Rota
                      </Button>
-                    </>
                 )}
                 {context === 'history' && getStatusBadge()}
               </div>
