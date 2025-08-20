@@ -29,7 +29,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
-const SLOT_INCREMENT_MINUTES = 15; // Apresentar horários de 15 em 15 minutos
+const MIN_SLOT_DURATION = 5; // Duração mínima de um slot em minutos
 
 const bookingSchema = z.object({
   selectedServiceId: z.string().min(1, { message: 'Selecione um serviço.' }),
@@ -151,6 +151,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       const workStartMinutes = timeToMinutes(availabilityForDay.start);
       const workEndMinutes = timeToMinutes(availabilityForDay.end);
 
+      // Criar lista de blocos ocupados com seus tempos de início e fim
       const occupiedBlocks = existingAppointments
         .map(app => {
             const bookedService = barber.services.find(s => s.name === app.serviceName);
@@ -160,42 +161,88 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             return { start, end };
         })
         .sort((a, b) => a.start - b.start);
-        
+      
+      // Gerar slots disponíveis baseados na duração real do serviço
       const slots: string[] = [];
-      let currentMinute = workStartMinutes;
-
-      while (currentMinute + serviceDuration <= workEndMinutes) {
-          const slotEnd = currentMinute + serviceDuration;
-          let isOccupied = false;
-
-          for (const block of occupiedBlocks) {
-              // Check for any overlap between the proposed slot and an occupied block
-              if (currentMinute < block.end && slotEnd > block.start) {
-                  isOccupied = true;
-                  // Move currentMinute to the end of the conflicting block to find the next free slot
-                  currentMinute = block.end;
-                  break;
-              }
-          }
-
-          if (!isOccupied) {
-              // Only add to slots if it's on a clean interval for better UI
-              if (currentMinute % SLOT_INCREMENT_MINUTES === 0) {
-                 slots.push(minutesToTime(currentMinute));
-              }
-              // Always advance by the increment to check the next possible slot
-              currentMinute += 1;
-          }
+      
+      // Determinar o incremento de busca baseado na duração do serviço
+      // Para serviços curtos (5-15 min), usar incremento de 5 minutos
+      // Para serviços médios (20-45 min), usar incremento de 10 minutos  
+      // Para serviços longos (50+ min), usar incremento de 15 minutos
+      let searchIncrement: number;
+      if (serviceDuration <= 15) {
+        searchIncrement = 5;
+      } else if (serviceDuration <= 45) {
+        searchIncrement = 10;
+      } else {
+        searchIncrement = 15;
       }
-      
-      // Filter out duplicate slots that might be generated
-      const uniqueSlots = [...new Set(slots)];
 
-      // To improve UI, we can filter slots to show them at reasonable intervals, e.g., every 15 minutes.
-      // But the core logic above finds all available gaps.
-      const finalSlots = uniqueSlots.filter(slot => timeToMinutes(slot) % 15 === 0);
-      setAvailableTimeSlots(finalSlots.length > 0 ? finalSlots : uniqueSlots); // Fallback to unique slots if 15-min interval has no options
+      // Começar do início do expediente
+      for (let startTime = workStartMinutes; startTime + serviceDuration <= workEndMinutes; startTime += searchIncrement) {
+        const endTime = startTime + serviceDuration;
+        let isAvailable = true;
+
+        // Verificar se este slot conflita com algum agendamento existente
+        for (const block of occupiedBlocks) {
+          // Verificar sobreposição: novo slot não pode começar antes do fim de um bloco existente
+          // e não pode terminar depois do início de um bloco existente
+          if (startTime < block.end && endTime > block.start) {
+            isAvailable = false;
+            break;
+          }
+        }
+
+        if (isAvailable) {
+          slots.push(minutesToTime(startTime));
+        }
+      }
+
+      // Para uma experiência mais fluida, também verificar se há "gaps" entre agendamentos
+      // onde o serviço atual caberia perfeitamente
+      if (occupiedBlocks.length > 0) {
+        // Verificar gap antes do primeiro agendamento
+        if (occupiedBlocks[0].start - workStartMinutes >= serviceDuration) {
+          for (let time = workStartMinutes; time + serviceDuration <= occupiedBlocks[0].start; time += searchIncrement) {
+            const slot = minutesToTime(time);
+            if (!slots.includes(slot)) {
+              slots.push(slot);
+            }
+          }
+        }
+
+        // Verificar gaps entre agendamentos
+        for (let i = 0; i < occupiedBlocks.length - 1; i++) {
+          const gapStart = occupiedBlocks[i].end;
+          const gapEnd = occupiedBlocks[i + 1].start;
+          const gapDuration = gapEnd - gapStart;
+
+          if (gapDuration >= serviceDuration) {
+            for (let time = gapStart; time + serviceDuration <= gapEnd; time += searchIncrement) {
+              const slot = minutesToTime(time);
+              if (!slots.includes(slot)) {
+                slots.push(slot);
+              }
+            }
+          }
+        }
+
+        // Verificar gap depois do último agendamento
+        const lastBlock = occupiedBlocks[occupiedBlocks.length - 1];
+        if (workEndMinutes - lastBlock.end >= serviceDuration) {
+          for (let time = lastBlock.end; time + serviceDuration <= workEndMinutes; time += searchIncrement) {
+            const slot = minutesToTime(time);
+            if (!slots.includes(slot)) {
+              slots.push(slot);
+            }
+          }
+        }
+      }
+
+      // Remover duplicatas e ordenar
+      const uniqueSlots = [...new Set(slots)].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
       
+      setAvailableTimeSlots(uniqueSlots);
       setIsTimeLoading(false);
     } else {
       setAvailableTimeSlots([]);
@@ -258,6 +305,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             id: 'temp-' + Date.now(), // temporary id
             clientName: clientName,
             clientUid: user.uid,
+            clientCoordinates: null,
+            clientFullAddress: '',
             serviceName: selectedService.name,
             servicePrice: finalPrice,
             type: data.bookingType,
@@ -522,5 +571,3 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
-
-    
