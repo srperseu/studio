@@ -179,13 +179,23 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           }
 
           if (!isOccupied) {
-              slots.push(minutesToTime(currentMinute));
-              // Increment by a fixed amount for the UI presentation
-              currentMinute += SLOT_INCREMENT_MINUTES;
+              // Only add to slots if it's on a clean interval for better UI
+              if (currentMinute % SLOT_INCREMENT_MINUTES === 0) {
+                 slots.push(minutesToTime(currentMinute));
+              }
+              // Always advance by the increment to check the next possible slot
+              currentMinute += 1;
           }
       }
       
-      setAvailableTimeSlots(slots);
+      // Filter out duplicate slots that might be generated
+      const uniqueSlots = [...new Set(slots)];
+
+      // To improve UI, we can filter slots to show them at reasonable intervals, e.g., every 15 minutes.
+      // But the core logic above finds all available gaps.
+      const finalSlots = uniqueSlots.filter(slot => timeToMinutes(slot) % 15 === 0);
+      setAvailableTimeSlots(finalSlots.length > 0 ? finalSlots : uniqueSlots); // Fallback to unique slots if 15-min interval has no options
+      
       setIsTimeLoading(false);
     } else {
       setAvailableTimeSlots([]);
