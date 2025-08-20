@@ -137,7 +137,7 @@ export function ClientDashboardHistory() {
                 </div>
                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.DollarSign className="h-4 w-4" />
-                    <span>R$ {app.servicePrice.toFixed(2)}</span>
+                    <span>R$ {(app.servicePrice || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.MapPin className="h-4 w-4" />
