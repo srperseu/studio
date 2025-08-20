@@ -29,6 +29,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
+const SLOT_INCREMENT_MINUTES = 15; // Apresentar horários de 15 em 15 minutos
 
 const bookingSchema = z.object({
   selectedServiceId: z.string().min(1, { message: 'Selecione um serviço.' }),
@@ -147,11 +148,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           return;
       }
       
-      // 1. Get working hours in minutes
       const workStartMinutes = timeToMinutes(availabilityForDay.start);
       const workEndMinutes = timeToMinutes(availabilityForDay.end);
 
-      // 2. Get occupied blocks in minutes
       const occupiedBlocks = existingAppointments
         .map(app => {
             const bookedService = barber.services.find(s => s.name === app.serviceName);
@@ -162,31 +161,29 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         })
         .sort((a, b) => a.start - b.start);
         
-      // 3. Determine free gaps
-      const freeGaps = [];
-      let lastEnd = workStartMinutes;
-
-      occupiedBlocks.forEach(block => {
-          if (block.start > lastEnd) {
-              freeGaps.push({ start: lastEnd, end: block.start });
-          }
-          lastEnd = Math.max(lastEnd, block.end);
-      });
-      
-      if (lastEnd < workEndMinutes) {
-          freeGaps.push({ start: lastEnd, end: workEndMinutes });
-      }
-
-      // 4. Generate slots within the free gaps
       const slots: string[] = [];
-      freeGaps.forEach(gap => {
-          let currentMinute = gap.start;
-          while (currentMinute + serviceDuration <= gap.end) {
-              slots.push(minutesToTime(currentMinute));
-              // Move to the next potential slot, e.g., every 15 minutes
-              currentMinute += 15;
+      let currentMinute = workStartMinutes;
+
+      while (currentMinute + serviceDuration <= workEndMinutes) {
+          const slotEnd = currentMinute + serviceDuration;
+          let isOccupied = false;
+
+          for (const block of occupiedBlocks) {
+              // Check for any overlap between the proposed slot and an occupied block
+              if (currentMinute < block.end && slotEnd > block.start) {
+                  isOccupied = true;
+                  // Move currentMinute to the end of the conflicting block to find the next free slot
+                  currentMinute = block.end;
+                  break;
+              }
           }
-      });
+
+          if (!isOccupied) {
+              slots.push(minutesToTime(currentMinute));
+              // Increment by a fixed amount for the UI presentation
+              currentMinute += SLOT_INCREMENT_MINUTES;
+          }
+      }
       
       setAvailableTimeSlots(slots);
       setIsTimeLoading(false);
@@ -275,7 +272,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       toast({
         title: 'Erro Crítico',
         description: `Ocorreu uma exceção: ${error.message}`,
-        variant: 'destructive',
+        variant: 'destructive'
       });
     }
   };
@@ -515,3 +512,5 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
+
+    
