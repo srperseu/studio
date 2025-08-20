@@ -169,8 +169,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             if (!isOccupied) {
               slots.push(format(currentTime, 'HH:mm'));
             }
-            // Use fixed 15-minute intervals for generating potential slots
-            currentTime.setMinutes(currentTime.getMinutes() + 15);
+            // Use fixed 30-minute intervals for generating potential slots for better UX
+            currentTime.setMinutes(currentTime.getMinutes() + 30);
           }
           setAvailableTimeSlots(slots);
         } else {
@@ -504,5 +504,3 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
-
-    
