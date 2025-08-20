@@ -63,6 +63,7 @@ export interface Client {
 
 export interface Appointment {
   id: string;
+  barberId?: string;
   clientName: string;
   clientUid: string;
   clientCoordinates?: GeoPoint | null;

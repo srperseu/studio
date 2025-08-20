@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,7 +5,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Appointment, Barber } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
@@ -59,6 +58,7 @@ export function ClientDashboard() {
             allAppointments.push({
               ...(doc.data() as Appointment),
               id: doc.id,
+              barberId: barber.id,
               barber: barber,
             });
           });
@@ -104,9 +104,9 @@ export function ClientDashboard() {
 
 
   const handleCancelAppointment = async (appointment: AppointmentWithBarber) => {
-    if (!appointment.barber) return;
+    if (!appointment.barberId) return;
     setIsUpdating(appointment.id);
-    const result = await cancelAppointmentAction(appointment.barber.id, appointment.id);
+    const result = await cancelAppointmentAction(appointment.barberId, appointment.id);
     if (result.success) {
         toast({ description: 'Agendamento cancelado com sucesso.' });
         fetchAppointments(); // Re-fetch to update lists
@@ -140,7 +140,7 @@ export function ClientDashboard() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Icons.MapPin className="h-4 w-4" />
-                    <span>{app.barber?.address?.fullAddress || 'Endereço não informado'}</span>
+                    <span>{app.type === 'inShop' ? (app.barber?.address?.fullAddress || 'Endereço não informado') : (app.clientFullAddress || 'Seu endereço') }</span>
                 </div>
                  <div className='flex gap-2 pt-2'>
                     <Badge variant={app.type === 'inShop' ? 'secondary' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : '')}>
@@ -149,7 +149,7 @@ export function ClientDashboard() {
                 </div>
             </CardContent>
             {isActionable && (
-                <CardContent>
+                <CardFooter>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" className="w-full" disabled={isUpdating === app.id}>
@@ -171,7 +171,7 @@ export function ClientDashboard() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                </CardContent>
+                </CardFooter>
             )}
         </Card>
     );

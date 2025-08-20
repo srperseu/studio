@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -163,25 +162,25 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       
       const slots: string[] = [];
       const searchIncrement = serviceDuration > 0 ? serviceDuration : DEFAULT_APPOINTMENT_DURATION;
+      
+      let currentTime = workStartMinutes;
+      while (currentTime + serviceDuration <= workEndMinutes) {
+          const potentialEndTime = currentTime + serviceDuration;
+          let isAvailable = true;
 
-      // Start from the beginning of the workday
-      for (let potentialStartTime = workStartMinutes; potentialStartTime + serviceDuration <= workEndMinutes; potentialStartTime += searchIncrement) {
-        const potentialEndTime = potentialStartTime + serviceDuration;
-        let isAvailable = true;
-
-        // Check if this slot conflicts with any existing appointment
-        for (const block of occupiedBlocks) {
-          // Check for overlap: new slot cannot start before an existing block ends
-          // and cannot end after an existing block starts
-          if (potentialStartTime < block.end && potentialEndTime > block.start) {
-            isAvailable = false;
-            break;
+          for (const block of occupiedBlocks) {
+              if (currentTime < block.end && potentialEndTime > block.start) {
+                  isAvailable = false;
+                  // Jump to the end of the current block to find the next free slot
+                  currentTime = block.end;
+                  break;
+              }
           }
-        }
 
-        if (isAvailable) {
-          slots.push(minutesToTime(potentialStartTime));
-        }
+          if (isAvailable) {
+              slots.push(minutesToTime(currentTime));
+              currentTime += searchIncrement;
+          }
       }
       
       setAvailableTimeSlots(slots);
@@ -243,12 +242,15 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         toast({ title: 'Sucesso!', description: `Agendamento com ${barber.fullName} realizado!` });
         
         // Add the new appointment to the local state to trigger UI update
+        const clientSnap = await getDoc(doc(db, 'clients', user.uid));
+        const clientData = clientSnap.data() as Client;
+
         const newAppointment: Appointment = {
             id: 'temp-' + Date.now(), // temporary id
             clientName: clientName,
             clientUid: user.uid,
-            clientCoordinates: null, // This is okay as it is only used for the barber's dashboard
-            clientFullAddress: '',  // This is okay as it is only used for the barber's dashboard
+            clientCoordinates: clientData.coordinates,
+            clientFullAddress: clientData.address?.fullAddress,
             serviceName: selectedService.name,
             servicePrice: finalPrice,
             type: data.bookingType,
@@ -513,5 +515,3 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </div>
   );
 }
-
-    
