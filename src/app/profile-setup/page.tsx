@@ -87,7 +87,7 @@ export default function ProfileSetupPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [barbershopPreviews, setBarbershopPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingDesc, setIsGeneratingDesc] = useState(isGeneratingDesc);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -589,4 +589,3 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
-
