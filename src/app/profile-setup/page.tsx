@@ -123,6 +123,17 @@ export default function ProfileSetupPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [dirtySections]);
+  
+  const handleBackClick = () => {
+    if (Object.values(dirtySections).some(d => d)) {
+        if(window.confirm("Você tem alterações não salvas. Deseja realmente sair?")) {
+            router.back();
+        }
+    } else {
+        router.back();
+    }
+  };
+
 
   useEffect(() => {
     if (user) {
@@ -351,7 +362,7 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <Header title="Configuração do Perfil de Barbeiro" showBackButton />
+        <Header title="Configuração do Perfil de Barbeiro" showBackButton onBackClick={handleBackClick} />
         <Card className="bg-card border-none shadow-lg mt-8">
           <CardHeader>
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>
