@@ -115,7 +115,7 @@ export function ClientDashboardHistory() {
     
     const getStatusBadge = () => {
         switch(app.status) {
-            case 'completed': return <Badge variant="secondary" className="bg-green-600 text-white">Finalizado</Badge>;
+            case 'completed': return <Badge variant="secondary" className="bg-green-600 hover:bg-green-700 text-white">Finalizado</Badge>;
             case 'cancelled': return <Badge variant="destructive" className="bg-muted-foreground">Cancelado</Badge>;
             case 'no-show': return <Badge variant="destructive">Não Compareceu</Badge>;
             case 'scheduled': 
