@@ -174,7 +174,7 @@ export function ClientDashboard() {
                             Na Barbearia
                         </Badge>
                     ) : (
-                        <Badge variant='outline' className="bg-transparent hover:bg-accent">
+                        <Badge variant='outline' className="bg-transparent hover:bg-muted">
                             <Icons.Home className="mr-1 h-3 w-3"/>
                             Em Domicílio
                         </Badge>
