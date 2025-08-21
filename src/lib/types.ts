@@ -48,6 +48,7 @@ export interface Barber {
   coordinates?: GeoPoint;
   availability: Availability;
   services: Service[];
+  barbershopPhotos?: string[];
 }
 
 export interface Client {
@@ -76,3 +77,5 @@ export interface Appointment {
   createdAt: Timestamp;
   status: 'scheduled' | 'cancelled' | 'completed' | 'no-show';
 }
+
+    

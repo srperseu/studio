@@ -20,6 +20,7 @@ import { Icons } from '@/components/icons';
 import type { Barber, GeoPoint, Address, Service } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Switch } from '@/components/ui/switch';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const defaultAvailability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -68,6 +69,7 @@ export default function ProfileSetupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const barbershopFileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Partial<Barber>>({
     photoURL: '',
@@ -75,10 +77,12 @@ export default function ProfileSetupPage() {
     address: initialAddress,
     availability: defaultAvailability,
     services: [],
+    barbershopPhotos: [],
   });
   const [newService, setNewService] = useState<Service>(initialService);
   const [address, setAddress] = useState<Address>(initialAddress);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [barbershopPreviews, setBarbershopPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -102,11 +106,13 @@ export default function ProfileSetupPage() {
              ...data,
              availability: data.availability || defaultAvailability,
              services: data.services || [],
+             barbershopPhotos: data.barbershopPhotos || [],
             }));
           if (data.address) {
             setAddress(prev => ({ ...prev, ...data.address }));
           }
           if (data.photoURL) setPreviewImage(data.photoURL);
+          if (data.barbershopPhotos) setBarbershopPreviews(data.barbershopPhotos);
         }
         setIsPageLoading(false);
       };
@@ -226,6 +232,23 @@ export default function ProfileSetupPage() {
     }
   };
 
+  const handleBarbershopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      const newPhotoUrls = files.map((_, i) => `https://placehold.co/600x400.png?i=${Date.now() + i}`);
+      
+      setBarbershopPreviews(prev => [...prev, ...newPreviews]);
+      // TODO: Implement actual file uploads
+      setProfile(prev => ({...prev, barbershopPhotos: [...(prev.barbershopPhotos || []), ...newPhotoUrls]}));
+    }
+  };
+
+  const removeBarbershopPhoto = (index: number) => {
+    setBarbershopPreviews(prev => prev.filter((_, i) => i !== index));
+    setProfile(prev => ({...prev, barbershopPhotos: prev.barbershopPhotos?.filter((_, i) => i !== index)}));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -284,160 +307,207 @@ export default function ProfileSetupPage() {
             <CardDescription>Complete seu perfil para que os clientes possam encontrá-lo.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-4">
               
-              <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4">Informações Básicas</CardTitle>
-                <div className="flex flex-col sm:flex-row items-start gap-6">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <Image 
-                      src={previewImage || 'https://placehold.co/128x128.png'} 
-                      alt="Preview" 
-                      width={128} height={128} 
-                      className="w-32 h-32 rounded-full bg-muted mb-4 object-cover border-2 border-border"
-                      data-ai-hint="barber portrait"
-                    />
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                      <Icons.Upload className="mr-2 h-4 w-4" /> Enviar Foto
-                    </Button>
-                  </div>
-                  <div className="flex-grow w-full space-y-2">
-                    <Label htmlFor="description">Descrição / Biografia</Label>
-                    <Textarea id="description" name="description" rows={4} value={profile.description || ''} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
-                    <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                      {isGeneratingDesc ? <Icons.Spinner className="mr-2" /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
-                      {isGeneratingDesc ? 'Gerando...' : 'Gerar Bio com IA'}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4">Localização</CardTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="sm:col-span-1">
-                        <Label htmlFor="cep">CEP</Label>
-                        <div className="relative">
-                            <Input type="text" id="cep" name="cep" value={address.cep} onChange={handleAddressChange} onBlur={handleCepBlur} placeholder="00000-000" maxLength={9} required />
-                            {isCepLoading && <Icons.Spinner className="absolute right-3 top-1/2 -translate-y-1/2" />}
+            <Accordion type="multiple" defaultValue={['item-1']} className="w-full space-y-4">
+                <AccordionItem value="item-1" className="bg-card border-none shadow-md rounded-lg p-2">
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4">Informações Básicas</AccordionTrigger>
+                    <AccordionContent className="p-4">
+                        <div className="flex flex-col sm:flex-row items-start gap-6">
+                            <div className="flex flex-col items-center flex-shrink-0">
+                                <Image 
+                                src={previewImage || 'https://placehold.co/128x128.png'} 
+                                alt="Preview" 
+                                width={128} height={128} 
+                                className="w-32 h-32 rounded-full bg-muted mb-4 object-cover border-2 border-border"
+                                data-ai-hint="barber portrait"
+                                />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                <Icons.Upload className="mr-2 h-4 w-4" /> Enviar Foto
+                                </Button>
+                            </div>
+                            <div className="flex-grow w-full space-y-2">
+                                <Label htmlFor="description">Descrição / Biografia</Label>
+                                <Textarea id="description" name="description" rows={4} value={profile.description || ''} onChange={handleChange} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
+                                <Button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                                {isGeneratingDesc ? <Icons.Spinner className="mr-2" /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
+                                {isGeneratingDesc ? 'Gerando...' : 'Gerar Bio com IA'}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                        <Label htmlFor="street">Rua</Label>
-                        <Input type="text" id="street" name="street" value={address.street} onChange={handleAddressChange} placeholder="Rua dos Pinheiros" required disabled={isCepLoading} />
-                    </div>
-                     <div className="sm:col-span-1">
-                        <Label htmlFor="number">Número</Label>
-                        <Input type="text" id="number" name="number" value={address.number} onChange={handleAddressChange} placeholder="123" required />
-                    </div>
-                     <div className="sm:col-span-2">
-                        <Label htmlFor="complement">Complemento (Opcional)</Label>
-                        <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
-                    </div>
-                     <div>
-                        <Label htmlFor="neighborhood">Bairro</Label>
-                        <Input type="text" id="neighborhood" name="neighborhood" value={address.neighborhood} onChange={handleAddressChange} placeholder="Jardim Paulista" required disabled={isCepLoading}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="city">Cidade</Label>
-                        <Input type="text" id="city" name="city" value={address.city} onChange={handleAddressChange} placeholder="São Paulo" required disabled={isCepLoading}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="state">Estado</Label>
-                        <Input type="text" id="state" name="state" value={address.state} onChange={handleAddressChange} placeholder="SP" required disabled={isCepLoading}/>
-                    </div>
-                </div>
-                <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
-                  {mapsApiKey && fullAddressString ? (
-                     <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(fullAddressString)}`}>
-                      </iframe>
-                  ) : (
-                    <p className="text-center p-4">
-                      {fullAddressString ? 'Chave da API do Google Maps não configurada.' : 'Preencha o endereço para ver o mapa.'}
-                    </p>
-                  )}
-                </div>
-              </Card>
+                    </AccordionContent>
+                </AccordionItem>
 
-              <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Calendar /> Horários de Atendimento</CardTitle>
-                <div className="space-y-4">
-                  {profile.availability && Object.keys(profile.availability).map(day => (
-                    <div key={day} className="grid grid-cols-1 sm:grid-cols-[1fr,2fr] gap-4 items-center p-3 bg-muted/50 rounded-md">
-                      <div className="flex items-center">
-                        <Switch id={`check-${day}`} checked={profile.availability![day].active} onCheckedChange={(checked) => handleAvailabilityChange(day, 'active', checked)} />
-                        <Label htmlFor={`check-${day}`} className="ml-3 font-medium text-lg">{day}</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`start-${day}`} className="text-sm">De</Label>
-                        <Input type="time" id={`start-${day}`} value={profile.availability![day].start} onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
-                        <Label htmlFor={`end-${day}`} className="text-sm">Até</Label>
-                        <Input type="time" id={`end-${day}`} value={profile.availability![day].end} onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-              
-              <Card className="p-6 bg-card border-none shadow-md">
-                <CardTitle className="text-xl font-semibold text-primary mb-4 flex items-center gap-2"><Icons.Scissors /> Meu Catálogo de Serviços</CardTitle>
-                
-                <div className="space-y-4">
-                    {Array.isArray(profile.services) && profile.services.map((service) => (
-                        <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                <AccordionItem value="item-2" className="bg-card border-none shadow-md rounded-lg p-2">
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4">Localização</AccordionTrigger>
+                    <AccordionContent className="p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-1">
+                                <Label htmlFor="cep">CEP</Label>
+                                <div className="relative">
+                                    <Input type="text" id="cep" name="cep" value={address.cep} onChange={handleAddressChange} onBlur={handleCepBlur} placeholder="00000-000" maxLength={9} required />
+                                    {isCepLoading && <Icons.Spinner className="absolute right-3 top-1/2 -translate-y-1/2" />}
+                                </div>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor="street">Rua</Label>
+                                <Input type="text" id="street" name="street" value={address.street} onChange={handleAddressChange} placeholder="Rua dos Pinheiros" required disabled={isCepLoading} />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <Label htmlFor="number">Número</Label>
+                                <Input type="text" id="number" name="number" value={address.number} onChange={handleAddressChange} placeholder="123" required />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Label htmlFor="complement">Complemento (Opcional)</Label>
+                                <Input type="text" id="complement" name="complement" value={address.complement || ''} onChange={handleAddressChange} placeholder="Apto 45" />
+                            </div>
                             <div>
-                                <p className="font-semibold">{service.name} ({service.duration || 60} min)</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
-                                </p>
+                                <Label htmlFor="neighborhood">Bairro</Label>
+                                <Input type="text" id="neighborhood" name="neighborhood" value={address.neighborhood} onChange={handleAddressChange} placeholder="Jardim Paulista" required disabled={isCepLoading}/>
                             </div>
-                             <div className="flex items-center gap-2">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => handleEditService(service)}>
-                                    <Icons.Pencil className="h-4 w-4 text-primary" />
-                                </Button>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
-                                    <Icons.X className="h-4 w-4 text-destructive" />
-                                </Button>
+                            <div>
+                                <Label htmlFor="city">Cidade</Label>
+                                <Input type="text" id="city" name="city" value={address.city} onChange={handleAddressChange} placeholder="São Paulo" required disabled={isCepLoading}/>
+                            </div>
+                            <div>
+                                <Label htmlFor="state">Estado</Label>
+                                <Input type="text" id="state" name="state" value={address.state} onChange={handleAddressChange} placeholder="SP" required disabled={isCepLoading}/>
                             </div>
                         </div>
-                    ))}
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-border">
-                    <p className="font-medium mb-2">{editingServiceId ? 'Editando Serviço' : 'Adicionar Novo Serviço'}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 items-end">
-                        <div className='space-y-1'>
-                            <Label htmlFor="service-name">Nome</Label>
-                            <Input id="service-name" name="name" value={newService.name} onChange={handleNewServiceChange} placeholder="Corte de Cabelo" />
-                        </div>
-                         <div className='space-y-1'>
-                            <Label htmlFor="service-price">Preço (R$)</Label>
-                            <Input id="service-price" name="price" type="number" value={newService.price} onChange={handleNewServiceChange} placeholder="50.00" />
-                        </div>
-                         <div className='space-y-1'>
-                            <Label htmlFor="service-atHomePrice">Preço Domicílio (R$)</Label>
-                            <Input id="service-atHomePrice" name="atHomePrice" type="number" value={newService.atHomePrice || 0} onChange={handleNewServiceChange} placeholder="70.00" />
-                        </div>
-                        <div className='space-y-1'>
-                            <Label htmlFor="service-duration">Duração (min)</Label>
-                            <Input id="service-duration" name="duration" type="number" value={newService.duration || 60} onChange={handleNewServiceChange} placeholder="60" />
-                        </div>
-                        <Button type="button" onClick={handleAddOrUpdateService}>{editingServiceId ? 'Salvar' : 'Adicionar'}</Button>
-                        {editingServiceId && (
-                           <Button type="button" variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
+                        <div className="mt-4 h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border overflow-hidden">
+                        {mapsApiKey && fullAddressString ? (
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(fullAddressString)}`}>
+                            </iframe>
+                        ) : (
+                            <p className="text-center p-4">
+                            {fullAddressString ? 'Chave da API do Google Maps não configurada.' : 'Preencha o endereço para ver o mapa.'}
+                            </p>
                         )}
-                    </div>
-                </div>
-              </Card>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="item-3" className="bg-card border-none shadow-md rounded-lg p-2">
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4 flex items-center gap-2"><Icons.Home className="h-5 w-5"/> Minha Barbearia</AccordionTrigger>
+                    <AccordionContent className="p-4">
+                        <Label>Fotos do Estabelecimento</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                            {barbershopPreviews.map((src, index) => (
+                                <div key={index} className="relative group">
+                                    <Image 
+                                      src={src} 
+                                      alt={`Foto da barbearia ${index + 1}`} 
+                                      width={200} 
+                                      height={150}
+                                      className="w-full h-32 object-cover rounded-md border-2 border-border"
+                                      data-ai-hint="barbershop interior"
+                                    />
+                                    <Button 
+                                      type="button" 
+                                      variant="destructive"
+                                      size="icon" 
+                                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => removeBarbershopPhoto(index)}>
+                                        <Icons.X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                             <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="w-full h-32 flex flex-col items-center justify-center border-dashed"
+                                onClick={() => barbershopFileInputRef.current?.click()}>
+                                <Icons.Upload className="h-6 w-6 mb-2" />
+                                Adicionar Fotos
+                            </Button>
+                        </div>
+                        <input type="file" ref={barbershopFileInputRef} onChange={handleBarbershopFileChange} multiple className="hidden" accept="image/*" />
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="item-4" className="bg-card border-none shadow-md rounded-lg p-2">
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4 flex items-center gap-2"><Icons.Calendar /> Horários de Atendimento</AccordionTrigger>
+                    <AccordionContent className="p-4">
+                        <div className="space-y-4">
+                        {profile.availability && Object.keys(profile.availability).map(day => (
+                            <div key={day} className="grid grid-cols-1 sm:grid-cols-[1fr,2fr] gap-4 items-center p-3 bg-muted/50 rounded-md">
+                            <div className="flex items-center">
+                                <Switch id={`check-${day}`} checked={profile.availability![day].active} onCheckedChange={(checked) => handleAvailabilityChange(day, 'active', checked)} />
+                                <Label htmlFor={`check-${day}`} className="ml-3 font-medium text-lg">{day}</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor={`start-${day}`} className="text-sm">De</Label>
+                                <Input type="time" id={`start-${day}`} value={profile.availability![day].start} onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
+                                <Label htmlFor={`end-${day}`} className="text-sm">Até</Label>
+                                <Input type="time" id={`end-${day}`} value={profile.availability![day].end} onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)} disabled={!profile.availability![day].active} className="w-full disabled:opacity-50" />
+                            </div>
+                            </div>
+                        ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-5" className="bg-card border-none shadow-md rounded-lg p-2">
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4 flex items-center gap-2"><Icons.Scissors /> Meu Catálogo de Serviços</AccordionTrigger>
+                    <AccordionContent className="p-4">
+                        <div className="space-y-4">
+                            {Array.isArray(profile.services) && profile.services.map((service) => (
+                                <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                    <div>
+                                        <p className="font-semibold">{service.name} ({service.duration || 60} min)</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleEditService(service)}>
+                                            <Icons.Pencil className="h-4 w-4 text-primary" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
+                                            <Icons.X className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="mt-6 pt-6 border-t border-border">
+                            <p className="font-medium mb-2">{editingServiceId ? 'Editando Serviço' : 'Adicionar Novo Serviço'}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 items-end">
+                                <div className='space-y-1'>
+                                    <Label htmlFor="service-name">Nome</Label>
+                                    <Input id="service-name" name="name" value={newService.name} onChange={handleNewServiceChange} placeholder="Corte de Cabelo" />
+                                </div>
+                                <div className='space-y-1'>
+                                    <Label htmlFor="service-price">Preço (R$)</Label>
+                                    <Input id="service-price" name="price" type="number" value={newService.price} onChange={handleNewServiceChange} placeholder="50.00" />
+                                </div>
+                                <div className='space-y-1'>
+                                    <Label htmlFor="service-atHomePrice">Preço Domicílio (R$)</Label>
+                                    <Input id="service-atHomePrice" name="atHomePrice" type="number" value={newService.atHomePrice || 0} onChange={handleNewServiceChange} placeholder="70.00" />
+                                </div>
+                                <div className='space-y-1'>
+                                    <Label htmlFor="service-duration">Duração (min)</Label>
+                                    <Input id="service-duration" name="duration" type="number" value={newService.duration || 60} onChange={handleNewServiceChange} placeholder="60" />
+                                </div>
+                                <Button type="button" onClick={handleAddOrUpdateService}>{editingServiceId ? 'Salvar' : 'Adicionar'}</Button>
+                                {editingServiceId && (
+                                <Button type="button" variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
+                                )}
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+              </Accordion>
               
-              <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base">
+              <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-base mt-8">
                  {isLoading && <Icons.Spinner className="mr-2 h-4 w-4" />}
                 {isLoading ? 'Salvando...' : 'Salvar Perfil e Concluir'}
               </Button>
