@@ -171,7 +171,7 @@ export function ClientDashboard() {
                         {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                     </Badge>
                     {app.type === 'inShop' && (
-                        <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs" onClick={handleRouteClick}>
+                        <Button variant="outline" size="sm" className="h-auto py-0.5 px-2 text-xs hover:bg-muted hover:text-muted-foreground" onClick={handleRouteClick}>
                            <Icons.MapPin className="mr-1 h-3 w-3"/>
                            Ver Rota
                         </Button>
