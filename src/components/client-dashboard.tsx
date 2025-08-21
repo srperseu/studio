@@ -167,7 +167,8 @@ export function ClientDashboard() {
                     <span>{app.type === 'inShop' ? (app.barber?.address?.fullAddress || 'Endereço não informado') : (app.clientFullAddress || 'Seu endereço') }</span>
                 </div>
                  <div className='flex items-center gap-2 pt-2'>
-                    <Badge variant={app.type === 'inShop' ? 'default' : 'default'} className={cn(app.type === 'atHome' ? 'bg-accent hover:bg-accent/80' : 'bg-primary/90')}>
+                    <Badge variant={app.type === 'inShop' ? 'default' : 'outline'} className="border-primary text-primary">
+                        {app.type === 'inShop' ? <Icons.Scissors className="mr-1 h-3 w-3"/> : <Icons.Home className="mr-1 h-3 w-3"/>}
                         {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                     </Badge>
                     {app.type === 'inShop' && (
@@ -237,7 +238,7 @@ export function ClientDashboard() {
             </Link>
         </div>
         
-        {filteredScheduled.length === 0 ? (
+        {scheduledAppointments.length === 0 ? (
              <Card className="bg-card border-border shadow-lg text-center py-16">
                 <CardContent>
                     <Icons.Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -257,13 +258,13 @@ export function ClientDashboard() {
                     </div>
                 </TabsContent>
                 <TabsContent value="inShop">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} />)}
                     </div>
                 </TabsContent>
                 <TabsContent value="atHome">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} />)}
                     </div>
                 </TabsContent>
             </Tabs>

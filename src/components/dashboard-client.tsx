@@ -213,8 +213,8 @@ export function DashboardClient() {
 
       return (
           <div key={app.id} className={cn(
-            "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4",
-            context === 'pending' ? 'border-accent' : context === 'scheduled' ? 'border-primary' : 'border-muted-foreground/50',
+            "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border",
+            context === 'pending' ? 'border-primary' : context === 'scheduled' ? 'border-primary/50' : 'border-muted-foreground/20',
             context === 'history' && status !== 'scheduled' && 'opacity-70'
           )}>
             <div className="flex-grow">
@@ -222,7 +222,8 @@ export function DashboardClient() {
               <p className="text-muted-foreground">{app.serviceName} - R$ {(app.servicePrice ?? 0).toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
-                 <Badge variant={'default'} className={cn(app.type === 'inShop' ? 'bg-primary/90' : 'bg-accent hover:bg-accent/90')}>
+                 <Badge variant={app.type === 'inShop' ? 'default' : 'outline'} className="border-primary text-primary">
+                    {app.type === 'inShop' ? <Icons.Scissors className="mr-1 h-3 w-3"/> : <Icons.Home className="mr-1 h-3 w-3"/>}
                     {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                  </Badge>
 
@@ -250,13 +251,13 @@ export function DashboardClient() {
                   </>
                 ) : ( // context === 'scheduled'
                   <>
-                    <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isUpdating === app.id} className="bg-accent hover:bg-accent/90 w-full sm:w-auto">
+                    <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isUpdating === app.id} className="w-full sm:w-auto">
                     {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
                     Lembrete
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive" disabled={isUpdating === app.id} className="w-full sm:w-auto">
+                            <Button size="sm" variant="outline" disabled={isUpdating === app.id} className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
                                 <Icons.X className="mr-2 h-4 w-4" /> Cancelar
                             </Button>
                         </AlertDialogTrigger>
@@ -311,9 +312,9 @@ export function DashboardClient() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {pendingAppointments.length > 0 && (
-            <Card className="bg-card border-border shadow-lg border-l-4 border-accent">
+            <Card className="bg-card border-border shadow-lg border-l-4 border-destructive">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-accent"><Icons.AlertTriangle className="text-accent" /> Pendente de Confirmação</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle className="text-destructive" /> Pendente de Confirmação</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -342,12 +343,12 @@ export function DashboardClient() {
                   </TabsContent>
                   <TabsContent value="inShop">
                       <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
+                          {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
                       </div>
                   </TabsContent>
                   <TabsContent value="atHome">
                       <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
+                           {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
                       </div>
                   </TabsContent>
                 </Tabs>
@@ -378,22 +379,22 @@ export function DashboardClient() {
                     </TabsContent>
                     <TabsContent value="scheduled">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
+                              {filteredHistory.filter(a => a.status === 'scheduled').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="completed">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
+                              {filteredHistory.filter(a => a.status === 'completed').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="cancelled">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
+                              {filteredHistory.filter(a => a.status === 'cancelled').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                     <TabsContent value="no-show">
                           <div className="space-y-4">
-                              {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
+                              {filteredHistory.filter(a => a.status === 'no-show').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
                           </div>
                     </TabsContent>
                   </Tabs>
