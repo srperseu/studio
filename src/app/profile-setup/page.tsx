@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -23,7 +24,7 @@ import { Accordion } from '@/components/ui/accordion';
 import { isEqual } from 'lodash';
 import { ProfileAccordionItem } from '@/components/profile-accordion-item';
 
-const defaultAvailability = {
+const defaultAvailability: Availability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
   'Terça': { active: true, start: '09:00', end: '18:00' },
   'Quarta': { active: true, start: '09:00', end: '18:00' },
@@ -86,7 +87,7 @@ export default function ProfileSetupPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [barbershopPreviews, setBarbershopPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(isGeneratingDesc);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -240,7 +241,7 @@ export default function ProfileSetupPage() {
   };
   
   const handleAvailabilityChange = (day: string, field: string, value: any) => {
-    setAvailability(prev => ({ ...prev, [day]: { ...prev.availability![day], [field]: value } }));
+    setAvailability(prev => ({ ...prev, [day]: { ...prev[day as keyof Availability], [field]: value } }));
   };
   
   const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -588,3 +589,4 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
+
