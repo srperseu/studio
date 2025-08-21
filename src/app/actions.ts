@@ -1,4 +1,3 @@
-
 'use server';
 
 import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
@@ -6,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
 import { revalidatePath } from 'next/cache';
-import type { Barber, Service, Client } from '@/lib/types';
+import type { Barber, Service, Client, Address, Availability } from '@/lib/types';
 
 // As funções de signUp e signIn foram movidas para o hook useAuth para serem executadas no lado do cliente.
 // A função de updateProfile foi movida para o lado do cliente para garantir o contexto de autenticação.
@@ -116,6 +115,19 @@ async function updateAppointmentStatus(barberId: string, appointmentId: string, 
     }
 }
 
+export async function updateBarberSection<T extends keyof Barber>(
+  uid: string,
+  sectionData: Pick<Barber, T>
+) {
+  try {
+    const barberRef = doc(db, 'barbers', uid);
+    await updateDoc(barberRef, sectionData);
+    revalidatePath('/profile-setup');
+    return { success: true, message: 'Seção atualizada com sucesso!' };
+  } catch (error: any) {
+    return { success: false, message: `Erro ao atualizar seção: ${error.message}` };
+  }
+}
 
 export async function cancelAppointmentAction(barberId: string, appointmentId: string) {
     return updateAppointmentStatus(barberId, appointmentId, 'cancelled');
