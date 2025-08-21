@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion } from '@/components/ui/accordion';
 import { isEqual } from 'lodash';
 import { ProfileAccordionItem } from '@/components/profile-accordion-item';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const defaultAvailability: Availability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -91,6 +92,8 @@ export default function ProfileSetupPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
 
   const [dirtySections, setDirtySections] = useState<Record<string, boolean>>({});
 
@@ -113,22 +116,11 @@ export default function ProfileSetupPage() {
     checkDirty();
   }, [checkDirty]);
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (Object.values(dirtySections).some(d => d)) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [dirtySections]);
   
   const handleBackClick = () => {
-    if (Object.values(dirtySections).some(d => d)) {
-        if(window.confirm("Você tem alterações não salvas. Deseja realmente sair?")) {
-            router.back();
-        }
+    const hasDirtySections = Object.values(dirtySections).some(d => d);
+    if (hasDirtySections) {
+        setShowExitConfirm(true);
     } else {
         router.back();
     }
@@ -360,6 +352,23 @@ export default function ProfileSetupPage() {
   }
 
   return (
+    <>
+    <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Você tem alterações não salvas</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Se você sair agora, perderá todas as alterações que não foram salvas.
+                    Tem certeza de que deseja sair?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Continuar Editando</AlertDialogCancel>
+                <AlertDialogAction onClick={() => router.back()}>Sair Mesmo Assim</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <Header title="Configuração do Perfil de Barbeiro" showBackButton onBackClick={handleBackClick} />
@@ -598,5 +607,6 @@ export default function ProfileSetupPage() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
