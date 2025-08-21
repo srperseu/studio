@@ -222,7 +222,7 @@ export function DashboardClient() {
               <p className="text-muted-foreground">{app.serviceName} - R$ {(app.servicePrice ?? 0).toFixed(2)}</p>
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
-                 <Badge variant={app.type === 'inShop' ? 'default' : 'outline'} className="border-primary text-primary">
+                 <Badge variant={app.type === 'inShop' ? 'default' : 'outline'}>
                     {app.type === 'inShop' ? <Icons.Scissors className="mr-1 h-3 w-3"/> : <Icons.Home className="mr-1 h-3 w-3"/>}
                     {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                  </Badge>

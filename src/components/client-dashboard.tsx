@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -167,7 +168,7 @@ export function ClientDashboard() {
                     <span>{app.type === 'inShop' ? (app.barber?.address?.fullAddress || 'Endereço não informado') : (app.clientFullAddress || 'Seu endereço') }</span>
                 </div>
                  <div className='flex items-center gap-2 pt-2'>
-                    <Badge variant={app.type === 'inShop' ? 'default' : 'outline'} className="border-primary text-primary">
+                    <Badge variant={app.type === 'inShop' ? 'default' : 'outline'}>
                         {app.type === 'inShop' ? <Icons.Scissors className="mr-1 h-3 w-3"/> : <Icons.Home className="mr-1 h-3 w-3"/>}
                         {app.type === 'inShop' ? 'Na Barbearia' : 'Em Domicílio'}
                     </Badge>
