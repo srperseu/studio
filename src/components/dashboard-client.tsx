@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,6 @@ export function DashboardClient() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled' | 'no-show' | 'scheduled'>('all');
 
   const fetchData = async () => {
     if (user) {
@@ -82,47 +81,33 @@ export function DashboardClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const { scheduledAppointments, pastAppointments } = useMemo(() => {
+  const { scheduledAppointments, pendingAppointments } = useMemo(() => {
     const scheduledList: Appointment[] = [];
-    const pastList: Appointment[] = [];
-
+    const pendingList: Appointment[] = [];
     const now = new Date();
 
     appointments.forEach(app => {
       const appDateTime = new Date(`${app.date}T${app.time}`);
-      
-      if (app.status === 'scheduled' && appDateTime >= now) {
-        scheduledList.push(app);
-      } else {
-        pastList.push(app);
+      if (app.status === 'scheduled') {
+        if (appDateTime >= now) {
+          scheduledList.push(app);
+        } else {
+          pendingList.push(app);
+        }
       }
     });
 
     scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-    pastList.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+    pendingList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
-    return { scheduledAppointments: scheduledList, pastAppointments: pastList };
+    return { scheduledAppointments, pendingAppointments };
   }, [appointments]);
 
-  const pendingAppointments = useMemo(() => {
-    const now = new Date();
-    return pastAppointments
-      .filter(app => {
-        const appDateTime = new Date(`${app.date}T${app.time}`);
-        return app.status === 'scheduled' && appDateTime < now;
-      })
-      .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-  }, [pastAppointments]);
 
   const filteredScheduled = useMemo(() => {
     if (scheduledFilter === 'all') return scheduledAppointments;
     return scheduledAppointments.filter(app => app.type === scheduledFilter);
   }, [scheduledAppointments, scheduledFilter]);
-
-  const filteredHistory = useMemo(() => {
-    if (historyFilter === 'all') return pastAppointments;
-    return pastAppointments.filter(app => app.status === historyFilter);
-  }, [pastAppointments, historyFilter]);
 
 
   const handleGenerateReminder = async (appointment: Appointment) => {
@@ -183,19 +168,9 @@ export function DashboardClient() {
     }
   };
   
-  const AppointmentCard = useCallback(({ app, context, barberId }: { app: Appointment, context: 'pending' | 'scheduled' | 'history', barberId: string | undefined }) => {
-      const status = app.status;
+  const AppointmentCard = useCallback(({ app, context }: { app: Appointment, context: 'pending' | 'scheduled' }) => {
       const isActionable = context === 'scheduled' || context === 'pending';
       
-      const getStatusBadge = () => {
-          switch(status) {
-              case 'completed': return <Badge variant="secondary" className="bg-green-600 hover:bg-green-700 text-white">Finalizado</Badge>;
-              case 'cancelled': return <Badge variant="destructive" className="bg-muted-foreground">Cancelado</Badge>;
-              case 'no-show': return <Badge variant="destructive">Não Compareceu</Badge>;
-              default: return null;
-          }
-      }
-
       const handleRouteClick = () => {
         if (!barberData?.coordinates) {
           toast({ title: 'Erro de Rota', description: 'As coordenadas do seu endereço não foram encontradas. Verifique seu perfil.', variant: 'destructive' });
@@ -214,8 +189,7 @@ export function DashboardClient() {
       return (
           <div key={app.id} className={cn(
             "bg-muted/70 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border",
-            context === 'pending' ? 'border-primary' : context === 'scheduled' ? 'border-primary/50' : 'border-muted-foreground/20',
-            context === 'history' && status !== 'scheduled' && 'opacity-70'
+            context === 'pending' ? 'border-primary' : 'border-primary/50'
           )}>
             <div className="flex-grow">
               <p className="font-bold text-lg text-primary">{app.clientName}</p>
@@ -223,12 +197,12 @@ export function DashboardClient() {
               <p className="font-semibold">{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'long', day: '2-digit', month: 'long' })} às {app.time}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
                  {app.type === 'inShop' ? (
-                  <Badge variant='default'>
+                  <Badge variant="default">
                     <Icons.Scissors className="mr-1 h-3 w-3"/>
                     Na Barbearia
                   </Badge>
                  ) : (
-                  <Badge variant='outline' className="bg-transparent hover:bg-muted">
+                  <Badge variant="outline" className="bg-transparent hover:bg-muted">
                     <Icons.Home className="mr-1 h-3 w-3"/>
                     Em Domicílio
                   </Badge>
@@ -240,11 +214,10 @@ export function DashboardClient() {
                         Ver Rota
                      </Button>
                 )}
-                {context === 'history' && getStatusBadge()}
               </div>
             </div>
             {isActionable && (
-              <div className="flex flex-col sm:flex-row sm:items-end gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 {context === 'pending' ? (
                   <>
                     <Button size="sm" onClick={() => handleUpdateStatus(app.id, 'complete')} disabled={isUpdating === app.id} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
@@ -290,7 +263,7 @@ export function DashboardClient() {
           </div>
       );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barberData?.id, isUpdating]);
+  }, [barberData, isUpdating]);
 
   if (authLoading || isLoading) {
     return <DashboardSkeleton />;
@@ -319,13 +292,13 @@ export function DashboardClient() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {pendingAppointments.length > 0 && (
-            <Card className="bg-card border-border shadow-lg border-l-4 border-destructive">
+            <Card className="bg-card border-border shadow-lg border-l-4 border-primary">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle className="text-destructive" /> Pendente de Confirmação</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-primary"><Icons.AlertTriangle className="text-primary" /> Pendente de Confirmação</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {pendingAppointments.map(app => <AppointmentCard key={app.id} app={app} context="pending" barberId={barberData?.id} />)}
+                        {pendingAppointments.map(app => <AppointmentCard key={app.id} app={app} context="pending" />)}
                     </div>
                 </CardContent>
             </Card>
@@ -343,73 +316,23 @@ export function DashboardClient() {
                       <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
                       <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="all">
-                      <div className="space-y-4">
-                          {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
-                      </div>
-                  </TabsContent>
-                  <TabsContent value="inShop">
-                      <div className="space-y-4">
-                          {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
-                      </div>
-                  </TabsContent>
-                  <TabsContent value="atHome">
-                      <div className="space-y-4">
-                           {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} context="scheduled" barberId={barberData?.id} />)}
-                      </div>
-                  </TabsContent>
+                  <div className="space-y-4">
+                      {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled"/>)}
+                  </div>
                 </Tabs>
               ) : (
                 <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
               )}
             </CardContent>
+            <CardFooter className='flex-col items-start gap-4'>
+                <Separator />
+                <Button variant="link" asChild className="p-0 text-primary">
+                    <Link href="/dashboard/history">
+                        Ver Histórico Completo &rarr;
+                    </Link>
+                </Button>
+            </CardFooter>
           </Card>
-          
-           <Card className="bg-card border-border shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Icons.Calendar /> Histórico</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pastAppointments.length > 0 ? (
-                  <Tabs value={historyFilter} onValueChange={(value) => setHistoryFilter(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5 mb-4">
-                        <TabsTrigger value="all">Todos</TabsTrigger>
-                        <TabsTrigger value="completed">Realizados</TabsTrigger>
-                        <TabsTrigger value="scheduled">Pendentes</TabsTrigger>
-                        <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
-                        <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="all">
-                        <div className="space-y-4">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="scheduled">
-                          <div className="space-y-4">
-                              {filteredHistory.filter(a => a.status === 'scheduled').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
-                          </div>
-                    </TabsContent>
-                    <TabsContent value="completed">
-                          <div className="space-y-4">
-                              {filteredHistory.filter(a => a.status === 'completed').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
-                          </div>
-                    </TabsContent>
-                    <TabsContent value="cancelled">
-                          <div className="space-y-4">
-                              {filteredHistory.filter(a => a.status === 'cancelled').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
-                          </div>
-                    </TabsContent>
-                    <TabsContent value="no-show">
-                          <div className="space-y-4">
-                              {filteredHistory.filter(a => a.status === 'no-show').map(app => <AppointmentCard key={app.id} app={app} context="history" barberId={barberData?.id} />)}
-                          </div>
-                    </TabsContent>
-                  </Tabs>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico.</p>
-                )}
-              </CardContent>
-           </Card>
 
         </div>
         
