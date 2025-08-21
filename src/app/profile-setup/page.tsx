@@ -340,7 +340,9 @@ export default function ProfileSetupPage() {
                 </AccordionItem>
 
                 <AccordionItem value="item-2" className="bg-card border-none shadow-md rounded-lg p-2">
-                    <AccordionTrigger className="text-xl font-semibold text-primary px-4">Localização</AccordionTrigger>
+                    <AccordionTrigger className="text-xl font-semibold text-primary px-4 flex items-center gap-2">
+                        <Icons.MapPin className="h-5 w-5"/> Endereço
+                    </AccordionTrigger>
                     <AccordionContent className="p-4">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="sm:col-span-1">
@@ -518,5 +520,3 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
-
-    
