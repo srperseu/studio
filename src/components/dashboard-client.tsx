@@ -243,7 +243,7 @@ export function DashboardClient() {
                       {isUpdating === app.id ? <Icons.Spinner /> : <><Icons.Check className="mr-2 h-4 w-4" /></>}
                       Confirmar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(app.id, 'no-show')} disabled={isUpdating === app.id} className="w-full sm:w-auto">
+                    <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(app.id, 'no-show')} disabled={isUpdating === app.id} className="w-full sm:w-auto">
                       {isUpdating === app.id ? <Icons.Spinner /> : <Icons.X className="mr-2 h-4 w-4" />}
                       Não Compareceu
                     </Button>
