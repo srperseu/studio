@@ -95,7 +95,8 @@ export default function ProfileSetupPage() {
   
   // New states for image cropping
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropConfig, setCropConfig] = useState<{ aspect: number; cropShape: 'rect' | 'round'; type: 'profile' | 'cover' } | null>(null);
+
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
@@ -318,12 +319,11 @@ export default function ProfileSetupPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
+        setImageToCrop(base64String);
         if (type === 'profile') {
-          setImageToCrop(base64String);
-          setIsCropperOpen(true);
-        } else if (type === 'cover') {
-          setCoverPreview(URL.createObjectURL(file));
-          setBasicInfo(prev => ({ ...prev, coverPhotoURL: base64String }));
+          setCropConfig({ type: 'profile', aspect: 1, cropShape: 'round' });
+        } else {
+          setCropConfig({ type: 'cover', aspect: 800 / 300, cropShape: 'rect' });
         }
       };
       reader.readAsDataURL(file);
@@ -332,12 +332,20 @@ export default function ProfileSetupPage() {
 
   const onCropComplete = async (croppedArea: Area, croppedAreaPixels: Area) => {
     try {
-        if (!imageToCrop) return;
+        if (!imageToCrop || !cropConfig) return;
+        
         const croppedImageBase64 = await getCroppedImg(imageToCrop, croppedAreaPixels, 0);
-        setProfilePreview(croppedImageBase64);
-        setBasicInfo(prev => ({ ...prev, photoURL: croppedImageBase64 }));
-        setIsCropperOpen(false);
+
+        if (cropConfig.type === 'profile') {
+            setProfilePreview(croppedImageBase64);
+            setBasicInfo(prev => ({ ...prev, photoURL: croppedImageBase64 }));
+        } else {
+            setCoverPreview(croppedImageBase64);
+            setBasicInfo(prev => ({ ...prev, coverPhotoURL: croppedImageBase64 }));
+        }
+        
         setImageToCrop(null);
+        setCropConfig(null);
     } catch (e) {
         console.error(e);
         toast({ title: 'Erro ao recortar imagem', variant: 'destructive'});
@@ -416,14 +424,14 @@ export default function ProfileSetupPage() {
         </AlertDialogContent>
     </AlertDialog>
     
-    {imageToCrop && (
+    {imageToCrop && cropConfig && (
         <ImageCropper
             image={imageToCrop}
-            isOpen={isCropperOpen}
-            onClose={() => setIsCropperOpen(false)}
+            isOpen={!!imageToCrop}
+            onClose={() => { setImageToCrop(null); setCropConfig(null); }}
             onCropComplete={onCropComplete}
-            aspect={1}
-            cropShape='round'
+            aspect={cropConfig.aspect}
+            cropShape={cropConfig.cropShape}
         />
     )}
 

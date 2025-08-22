@@ -56,6 +56,12 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }
 
+  // Reset zoom and crop when image changes
+  React.useEffect(() => {
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
+  }, [image]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-card border-border">
