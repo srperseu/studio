@@ -67,9 +67,10 @@ export function DashboardClient() {
           
           setAppointments(sortedAppointments);
 
-          const reviewsQuery = query(collection(db, `barbers/${user.uid}/reviews`), where('rating', '<=', 3), orderBy('rating'), orderBy('createdAt', 'desc'));
+          const reviewsQuery = query(collection(db, `barbers/${user.uid}/reviews`), orderBy('createdAt', 'desc'));
           const reviewsSnapshot = await getDocs(reviewsQuery);
-          const lowRatedReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
+          const allReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
+          const lowRatedReviews = allReviews.filter(r => r.rating <= 3);
           setReviews(lowRatedReviews);
 
 
@@ -418,3 +419,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
