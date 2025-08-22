@@ -41,7 +41,10 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
                                <span className="text-muted-foreground/80 ml-1">({barber.reviewCount})</span>
                             </Badge>
                        ) : (
-                           <Badge variant="outline">Novo</Badge>
+                           <Badge variant="destructive">
+                                <Icons.Sparkles className="mr-1 h-3 w-3"/>
+                                Novo
+                           </Badge>
                        )}
                     </div>
                     {barber.distanceText && (
