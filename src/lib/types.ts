@@ -43,6 +43,7 @@ export interface Barber {
   phone: string;
   profileComplete: boolean;
   photoURL?: string;
+  coverPhotoURL?: string;
   description?: string;
   address?: Address;
   coordinates?: GeoPoint;

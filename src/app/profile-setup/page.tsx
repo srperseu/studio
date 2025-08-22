@@ -73,19 +73,21 @@ export default function ProfileSetupPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const barbershopFileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   // States for data saved in DB
   const [savedProfile, setSavedProfile] = useState<Partial<Barber>>({});
   
   // States for current edits
-  const [basicInfo, setBasicInfo] = useState({ description: '', photoURL: '' });
+  const [basicInfo, setBasicInfo] = useState({ description: '', photoURL: '', coverPhotoURL: '' });
   const [address, setAddress] = useState<Address>(initialAddress);
   const [barbershopPhotos, setBarbershopPhotos] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Availability>(defaultAvailability);
   const [services, setServices] = useState<Service[]>([]);
 
   const [newService, setNewService] = useState<Service>(initialService);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [barbershopPreviews, setBarbershopPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
@@ -103,7 +105,11 @@ export default function ProfileSetupPage() {
 
   const checkDirty = useCallback(() => {
     const dirty = {
-      info: !isEqual(basicInfo, { description: savedProfile.description || '', photoURL: savedProfile.photoURL || '' }),
+      info: !isEqual(basicInfo, { 
+        description: savedProfile.description || '', 
+        photoURL: savedProfile.photoURL || '',
+        coverPhotoURL: savedProfile.coverPhotoURL || ''
+      }),
       address: !isEqual(address, savedProfile.address || initialAddress),
       photos: !isEqual(barbershopPhotos, savedProfile.barbershopPhotos || []),
       availability: !isEqual(availability, savedProfile.availability || defaultAvailability),
@@ -136,13 +142,18 @@ export default function ProfileSetupPage() {
         if (docSnap.exists()) {
           const data = docSnap.data() as Barber;
           setSavedProfile(data); // Store the initial state
-          setBasicInfo({ description: data.description || '', photoURL: data.photoURL || '' });
+          setBasicInfo({ 
+            description: data.description || '', 
+            photoURL: data.photoURL || '',
+            coverPhotoURL: data.coverPhotoURL || ''
+          });
           setAddress(data.address || initialAddress);
           setBarbershopPhotos(data.barbershopPhotos || []);
           setAvailability(data.availability || defaultAvailability);
           setServices(data.services || []);
 
-          if (data.photoURL) setPreviewImage(data.photoURL);
+          if (data.photoURL) setProfilePreview(data.photoURL);
+          if (data.coverPhotoURL) setCoverPreview(data.coverPhotoURL);
           if (data.barbershopPhotos) setBarbershopPreviews(data.barbershopPhotos);
         }
         setIsPageLoading(false);
@@ -293,12 +304,18 @@ export default function ProfileSetupPage() {
     }
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setPreviewImage(URL.createObjectURL(file));
-      // TODO: Implement actual file upload
-      setBasicInfo(prev => ({ ...prev, photoURL: 'https://placehold.co/128x128.png' }));
+      if (type === 'profile') {
+        setProfilePreview(URL.createObjectURL(file));
+        // TODO: Implement actual file upload
+        setBasicInfo(prev => ({ ...prev, photoURL: 'https://placehold.co/128x128.png' }));
+      } else if (type === 'cover') {
+        setCoverPreview(URL.createObjectURL(file));
+        // TODO: Implement actual file upload
+        setBasicInfo(prev => ({ ...prev, coverPhotoURL: 'https://placehold.co/800x300.png' }));
+      }
     }
   };
 
@@ -389,20 +406,46 @@ export default function ProfileSetupPage() {
                     onSave={() => handleSectionSave('info')}
                     isSaving={isLoading}
                 >
-                    <div className="flex flex-col sm:flex-row items-start gap-6">
-                        <div className="flex flex-col items-center flex-shrink-0">
-                            <Image 
-                            src={previewImage || 'https://placehold.co/128x128.png'} 
-                            alt="Preview" 
-                            width={128} height={128} 
-                            className="w-32 h-32 rounded-full bg-muted mb-4 object-cover border-2 border-border"
-                            data-ai-hint="barber portrait"
-                            />
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                            <Icons.Upload className="mr-2 h-4 w-4" /> Enviar Foto
-                            </Button>
+                     <div className="space-y-6">
+                        <div className="relative h-48 w-full bg-muted rounded-lg overflow-hidden group">
+                           <Image
+                             src={coverPreview || 'https://placehold.co/800x300.png'}
+                             alt="Foto de capa"
+                             layout="fill"
+                             objectFit="cover"
+                             className="group-hover:opacity-75 transition-opacity"
+                             data-ai-hint="barbershop ambience"
+                           />
+                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Button type="button" variant="secondary" onClick={() => coverFileInputRef.current?.click()}>
+                               <Icons.Upload className="mr-2 h-4 w-4" /> Alterar Capa
+                             </Button>
+                           </div>
+                           <input type="file" ref={coverFileInputRef} onChange={(e) => handleFileChange(e, 'cover')} className="hidden" accept="image/*" />
+
+                            <div className="absolute -bottom-16 left-1/2 -translate-x-1/2">
+                                <div className="relative h-32 w-32 rounded-full border-4 border-card bg-card group/profile">
+                                    <Image
+                                        src={profilePreview || 'https://placehold.co/128x128.png'}
+                                        alt="Preview"
+                                        width={128} height={128}
+                                        className="rounded-full object-cover"
+                                        data-ai-hint="barber portrait"
+                                    />
+                                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/profile:opacity-100 transition-opacity">
+                                       <Button type="button" variant="secondary" size="sm" className="h-8" onClick={() => fileInputRef.current?.click()}>
+                                         <Icons.Upload className="mr-2 h-4 w-4" /> Alterar
+                                       </Button>
+                                    </div>
+                                    <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e, 'profile')} className="hidden" accept="image/*" />
+                                </div>
+                            </div>
                         </div>
+
+                        <div className="pt-16 text-center">
+                          {/* Placeholder for name/title if needed in future */}
+                        </div>
+                        
                         <div className="flex-grow w-full space-y-2">
                             <Label htmlFor="description">Descrição / Biografia</Label>
                             <Textarea id="description" name="description" rows={4} value={basicInfo.description} onChange={(e) => setBasicInfo(p => ({...p, description: e.target.value}))} placeholder="Ex: Especialista em cortes clássicos e barba lenhador." />
