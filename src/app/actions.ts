@@ -1,11 +1,11 @@
 'use server';
 
-import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc, updateDoc, runTransaction, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateBarberBio } from '@/ai/flows/generate-barber-bio';
 import { generateAppointmentReminder } from '@/ai/flows/generate-appointment-reminder';
 import { revalidatePath } from 'next/cache';
-import type { Barber, Service, Client, Address, Availability } from '@/lib/types';
+import type { Barber, Service, Client, Address, Availability, Review } from '@/lib/types';
 
 // As funções de signUp e signIn foram movidas para o hook useAuth para serem executadas no lado do cliente.
 // A função de updateProfile foi movida para o lado do cliente para garantir o contexto de autenticação.
@@ -93,6 +93,7 @@ export async function createBooking(
       time: selectedTime,
       createdAt: serverTimestamp(),
       status: 'scheduled',
+      reviewed: false, // Add reviewed flag
     });
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
@@ -109,11 +110,63 @@ async function updateAppointmentStatus(barberId: string, appointmentId: string, 
         await updateDoc(appointmentRef, { status });
         revalidatePath('/dashboard');
         revalidatePath('/dashboard/client');
+        revalidatePath('/dashboard/history');
+        revalidatePath('/dashboard/client/history');
         return { success: true, message: `Agendamento atualizado para ${status}.` };
     } catch (error: any) {
         return { success: false, message: `Erro ao atualizar agendamento: ${error.message}` };
     }
 }
+
+export async function submitReviewAction(
+    barberId: string, 
+    appointmentId: string,
+    reviewData: Omit<Review, 'id' | 'createdAt' | 'barberId'>
+) {
+    try {
+        const barberRef = doc(db, 'barbers', barberId);
+        const appointmentRef = doc(db, 'barbers', barberId, 'appointments', appointmentId);
+        const reviewRef = doc(collection(db, 'barbers', barberId, 'reviews'));
+
+        await runTransaction(db, async (transaction) => {
+            const barberDoc = await transaction.get(barberRef);
+            if (!barberDoc.exists()) {
+                throw new Error("Barbeiro não encontrado.");
+            }
+            
+            // 1. Save the new review
+            transaction.set(reviewRef, {
+                ...reviewData,
+                id: reviewRef.id,
+                barberId: barberId,
+                createdAt: serverTimestamp(),
+            });
+
+            // 2. Mark appointment as reviewed
+            transaction.update(appointmentRef, { reviewed: true });
+
+            // 3. Update barber's average rating and review count
+            const barberData = barberDoc.data() as Barber;
+            const currentTotalRating = (barberData.ratingAverage || 0) * (barberData.reviewCount || 0);
+            const newReviewCount = (barberData.reviewCount || 0) + 1;
+            const newTotalRating = currentTotalRating + reviewData.rating;
+            const newAverage = newTotalRating / newReviewCount;
+            
+            transaction.update(barberRef, {
+                reviewCount: newReviewCount,
+                ratingAverage: newAverage,
+            });
+        });
+
+        revalidatePath(`/booking`);
+        revalidatePath(`/dashboard/client/history`);
+        return { success: true, message: "Avaliação enviada com sucesso!" };
+    } catch (error: any) {
+        console.error("Erro ao enviar avaliação:", error);
+        return { success: false, message: error.message };
+    }
+}
+
 
 export async function updateBarberSection<T extends keyof Barber>(
   uid: string,

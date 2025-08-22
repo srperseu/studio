@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import type { Appointment, Barber } from '@/lib/types';
+import type { Appointment, Barber, Review } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
@@ -13,7 +13,8 @@ import { Badge } from './ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { ReviewForm } from './review-form';
+import { Button } from './ui/button';
 
 interface AppointmentWithBarber extends Appointment {
   barber: Barber | null;
@@ -31,6 +32,7 @@ export function ClientDashboardHistory() {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<AppointmentWithBarber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewingAppointment, setReviewingAppointment] = useState<AppointmentWithBarber | null>(null);
   
   const [historyFilter, setHistoryFilter] = useState<'all' | 'completed' | 'cancelled' | 'no-show'>('all');
 
@@ -53,6 +55,7 @@ export function ClientDashboardHistory() {
             allAppointments.push({
               ...(doc.data() as Appointment),
               id: doc.id,
+              barberId: barber.id,
               barber: barber,
             });
           });
@@ -150,6 +153,21 @@ export function ClientDashboardHistory() {
                     {getStatusBadge()}
                 </div>
             </CardContent>
+            {app.status === 'completed' && (
+                <div className="p-4 pt-0">
+                    {app.reviewed ? (
+                        <Button variant="outline" disabled className="w-full">
+                            <Icons.Check className="mr-2 h-4 w-4"/>
+                            Avaliado
+                        </Button>
+                    ) : (
+                         <Button variant="default" onClick={() => setReviewingAppointment(app)} className="w-full">
+                            <Icons.Star className="mr-2 h-4 w-4"/>
+                            Avaliar Serviço
+                        </Button>
+                    )}
+                </div>
+            )}
         </Card>
     );
   }
@@ -174,6 +192,18 @@ export function ClientDashboardHistory() {
   }
 
   return (
+    <>
+    {reviewingAppointment && (
+        <ReviewForm
+            isOpen={!!reviewingAppointment}
+            onClose={() => setReviewingAppointment(null)}
+            appointment={reviewingAppointment}
+            onSubmitSuccess={() => {
+                setReviewingAppointment(null);
+                fetchAppointments(); // Re-fetch to show "Reviewed" button
+            }}
+        />
+    )}
      <div className="space-y-8">
         
         {pastAppointments.length === 0 ? (
@@ -192,45 +222,20 @@ export function ClientDashboardHistory() {
                     <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
                     <TabsTrigger value="no-show">Não Compareceu</TabsTrigger>
                 </TabsList>
-                <TabsContent value="all">
+                
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredHistory.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
+                        filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                    )}
-                </TabsContent>
-                <TabsContent value="completed">
-                    {filteredHistory.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
+                        <div className="col-span-full text-center py-8">
+                            <p className="text-muted-foreground">Nenhum agendamento no histórico para este filtro.</p>
                         </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
                     )}
-                </TabsContent>
-                <TabsContent value="cancelled">
-                    {filteredHistory.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                    )}
-                </TabsContent>
-                <TabsContent value="no-show">
-                    {filteredHistory.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredHistory.map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">Nenhum agendamento no histórico para este filtro.</p>
-                    )}
-                </TabsContent>
+                </div>
                 </Tabs>
             </div>
         )}
      </div>
+     </>
   );
 }

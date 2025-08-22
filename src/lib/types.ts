@@ -50,6 +50,8 @@ export interface Barber {
   availability: Availability;
   services: Service[];
   barbershopPhotos?: string[];
+  reviewCount?: number;
+  ratingAverage?: number;
 }
 
 export interface Client {
@@ -77,6 +79,17 @@ export interface Appointment {
   time: string; // "HH:MM"
   createdAt: Timestamp;
   status: 'scheduled' | 'cancelled' | 'completed' | 'no-show';
+  reviewed: boolean;
 }
 
-    
+export interface Review {
+    id: string;
+    barberId: string;
+    clientUid: string;
+    clientName: string;
+    appointmentId: string;
+    rating: number; // 1-5
+    comment?: string;
+    praises?: string[]; // e.g., ["Pontual", "Bom de Papo"]
+    createdAt: Timestamp;
+}

@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { getDocs, doc, collection, query, orderBy } from 'firebase/firestore';
+import { getDocs, doc, collection, query, orderBy, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
 
@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icons } from './icons';
-import type { Barber, Appointment } from '@/lib/types';
+import type { Barber, Appointment, Review } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export function DashboardClient() {
 
   const [barberData, setBarberData] = useState<Barber | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
@@ -53,8 +54,8 @@ export function DashboardClient() {
              } as Barber);
           }
 
-          const q = query(collection(db, `barbers/${user.uid}/appointments`));
-          const appointmentsSnapshot = await getDocs(q);
+          const appointmentsQuery = query(collection(db, `barbers/${user.uid}/appointments`));
+          const appointmentsSnapshot = await getDocs(appointmentsQuery);
           const allAppointments: Appointment[] = [];
           appointmentsSnapshot.forEach((doc) => allAppointments.push({ id: doc.id, ...doc.data() } as Appointment));
           
@@ -65,6 +66,12 @@ export function DashboardClient() {
           });
           
           setAppointments(sortedAppointments);
+
+          const reviewsQuery = query(collection(db, `barbers/${user.uid}/reviews`), where('rating', '<=', 3), orderBy('rating'), orderBy('createdAt', 'desc'));
+          const reviewsSnapshot = await getDocs(reviewsQuery);
+          const lowRatedReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
+          setReviews(lowRatedReviews);
+
 
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -291,6 +298,25 @@ export function DashboardClient() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+
+           {reviews.length > 0 && (
+            <Card className="bg-card border-border shadow-lg border-l-4 border-destructive">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                       <p>Você recebeu {reviews.length} avaliações com 3 estrelas ou menos. É uma boa oportunidade para entender o feedback e entrar em contato com os clientes.</p>
+                       <Button variant="link" asChild className="p-0 text-primary">
+                          <Link href="/dashboard/reviews">
+                              Ver todas as avaliações &rarr;
+                          </Link>
+                      </Button>
+                    </div>
+                </CardContent>
+            </Card>
+          )}
+
           {pendingAppointments.length > 0 && (
             <Card className="bg-card border-border shadow-lg border-l-4 border-primary">
                 <CardHeader>
@@ -324,14 +350,6 @@ export function DashboardClient() {
                 <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
               )}
             </CardContent>
-            <CardFooter className='flex-col items-start gap-4'>
-                <Separator />
-                <Button variant="link" asChild className="p-0 text-primary">
-                    <Link href="/dashboard/history">
-                        Ver Histórico Completo &rarr;
-                    </Link>
-                </Button>
-            </CardFooter>
           </Card>
 
         </div>

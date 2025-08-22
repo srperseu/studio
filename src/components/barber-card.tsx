@@ -7,6 +7,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from './ui/button';
 import { Icons } from './icons';
 import { Badge } from './ui/badge';
+import { StarRating } from './star-rating';
+
 
 interface BarberWithDistance extends Barber {
     distanceText?: string;
@@ -31,10 +33,17 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
                 />
                 <div className="flex-grow">
                     <CardTitle>{barber.fullName}</CardTitle>
-                    <CardDescription className="flex items-center gap-1 mt-1">
-                        <Icons.MapPin className="h-4 w-4 flex-shrink-0" />
-                        <span>{barber.address?.city} - {barber.address?.state}</span>
-                    </CardDescription>
+                    <div className="flex items-center gap-2 mt-1">
+                       {barber.ratingAverage && barber.reviewCount ? (
+                            <Badge variant="secondary" className="flex items-center gap-1 bg-amber-500 text-black">
+                               <Icons.Star className="h-3 w-3 fill-current" />
+                               <span>{barber.ratingAverage.toFixed(1)}</span>
+                               <span className="text-muted-foreground/80 ml-1">({barber.reviewCount})</span>
+                            </Badge>
+                       ) : (
+                           <Badge variant="outline">Novo</Badge>
+                       )}
+                    </div>
                     {barber.distanceText && (
                         <Badge variant="secondary" className="mt-2">
                            ~ {barber.distanceText}
@@ -43,6 +52,10 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
                 </div>
             </CardHeader>
             <CardContent className="flex-grow">
+                 <CardDescription className="flex items-center gap-1 mb-2">
+                        <Icons.MapPin className="h-4 w-4 flex-shrink-0" />
+                        <span>{barber.address?.city} - {barber.address?.state}</span>
+                </CardDescription>
                 <p className="text-muted-foreground line-clamp-3">
                     {barber.description || 'Este barbeiro ainda não adicionou uma descrição.'}
                 </p>
@@ -50,7 +63,7 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
             <CardFooter>
                 <Button className="w-full" onClick={() => onSelect(barber)}>
                     <Icons.Scissors className="mr-2 h-4 w-4" />
-                    Agendar
+                    Ver Perfil e Agendar
                 </Button>
             </CardFooter>
         </Card>

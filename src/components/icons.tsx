@@ -24,6 +24,7 @@ import {
   Clock,
   ZoomIn,
   ZoomOut,
+  Star,
   type LucideProps
 } from 'lucide-react';
 
@@ -52,4 +53,5 @@ export const Icons = {
   Clock: (props: LucideProps) => <Clock {...props} />,
   ZoomIn: (props: LucideProps) => <ZoomIn {...props} />,
   ZoomOut: (props: LucideProps) => <ZoomOut {...props} />,
+  Star: (props: LucideProps) => <Star {...props} />,
 };

@@ -99,6 +99,10 @@ export function UserNav() {
                 <Icons.Calendar className="mr-2" />
                 <span>Minha Agenda</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/dashboard/reviews')}>
+                <Icons.Star className="mr-2" />
+                <span>Avaliações</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/dashboard/history')}>
                 <Icons.Clock className="mr-2" />
                 <span>Histórico</span>
