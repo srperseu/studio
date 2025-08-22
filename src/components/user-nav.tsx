@@ -91,6 +91,10 @@ export function UserNav() {
         <DropdownMenuGroup>
           {userRole === 'barber' && (
             <>
+              <DropdownMenuItem onSelect={() => router.push('/profile-setup')}>
+                <Icons.User className="mr-2" />
+                <span>Meu Perfil</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/dashboard')}>
                 <Icons.Calendar className="mr-2" />
                 <span>Minha Agenda</span>
@@ -99,14 +103,14 @@ export function UserNav() {
                 <Icons.Clock className="mr-2" />
                 <span>Histórico</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => router.push('/profile-setup')}>
-                <Icons.User className="mr-2" />
-                <span>Meu Perfil</span>
-              </DropdownMenuItem>
             </>
           )}
            {userRole === 'client' && (
             <>
+              <DropdownMenuItem onSelect={() => router.push('/profile-setup/client')}>
+                <Icons.User className="mr-2" />
+                <span>Meu Perfil</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/dashboard/client')}>
                 <Icons.Calendar className="mr-2" />
                 <span>Meus Agendamentos</span>
@@ -114,10 +118,6 @@ export function UserNav() {
                <DropdownMenuItem onSelect={() => router.push('/dashboard/client/history')}>
                 <Icons.Clock className="mr-2" />
                 <span>Histórico</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => router.push('/profile-setup/client')}>
-                <Icons.User className="mr-2" />
-                <span>Meu Perfil</span>
               </DropdownMenuItem>
             </>
           )}
