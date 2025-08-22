@@ -307,27 +307,34 @@ export default function ProfileSetupPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (type === 'profile') {
-        setProfilePreview(URL.createObjectURL(file));
-        // TODO: Implement actual file upload
-        setBasicInfo(prev => ({ ...prev, photoURL: 'https://placehold.co/128x128.png' }));
-      } else if (type === 'cover') {
-        setCoverPreview(URL.createObjectURL(file));
-        // TODO: Implement actual file upload
-        setBasicInfo(prev => ({ ...prev, coverPhotoURL: 'https://placehold.co/800x300.png' }));
-      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (type === 'profile') {
+          setProfilePreview(URL.createObjectURL(file));
+          setBasicInfo(prev => ({ ...prev, photoURL: base64String }));
+        } else if (type === 'cover') {
+          setCoverPreview(URL.createObjectURL(file));
+          setBasicInfo(prev => ({ ...prev, coverPhotoURL: base64String }));
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleBarbershopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const newPreviews = files.map(file => URL.createObjectURL(file));
-      const newPhotoUrls = files.map((_, i) => `https://placehold.co/600x400.png?i=${Date.now() + i}`);
       
-      setBarbershopPreviews(prev => [...prev, ...newPreviews]);
-      // TODO: Implement actual file uploads
-      setBarbershopPhotos(prev => ([...(prev || []), ...newPhotoUrls]));
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result as string;
+            setBarbershopPreviews(prev => [...prev, URL.createObjectURL(file)]);
+            setBarbershopPhotos(prev => ([...(prev || []), base64String]));
+        }
+        reader.readAsDataURL(file);
+      })
     }
   };
 
@@ -409,7 +416,7 @@ export default function ProfileSetupPage() {
                      <div className="space-y-6">
                         <div className="relative h-48 w-full bg-muted rounded-lg overflow-hidden group">
                            <Image
-                             src={coverPreview || 'https://placehold.co/800x300.png'}
+                             src={coverPreview || basicInfo.coverPhotoURL || 'https://placehold.co/800x300.png'}
                              alt="Foto de capa"
                              layout="fill"
                              objectFit="cover"
@@ -426,7 +433,7 @@ export default function ProfileSetupPage() {
                             <div className="absolute -bottom-16 left-1/2 -translate-x-1/2">
                                 <div className="relative h-32 w-32 rounded-full border-4 border-card bg-card group/profile">
                                     <Image
-                                        src={profilePreview || 'https://placehold.co/128x128.png'}
+                                        src={profilePreview || basicInfo.photoURL || 'https://placehold.co/128x128.png'}
                                         alt="Preview"
                                         width={128} height={128}
                                         className="rounded-full object-cover"
@@ -442,8 +449,8 @@ export default function ProfileSetupPage() {
                             </div>
                         </div>
 
-                        <div className="pt-16 text-center">
-                          {/* Placeholder for name/title if needed in future */}
+                        <div className="pt-20 text-center">
+                          <h2 className="text-2xl font-bold">{user?.displayName}</h2>
                         </div>
                         
                         <div className="flex-grow w-full space-y-2">
@@ -526,7 +533,7 @@ export default function ProfileSetupPage() {
                 >
                     <Label>Fotos do Estabelecimento</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-                        {barbershopPreviews.map((src, index) => (
+                        {[...barbershopPreviews, ...(barbershopPhotos.filter(p => !p.startsWith('data:')))].map((src, index) => (
                             <div key={index} className="relative group">
                                 <Image 
                                     src={src} 
