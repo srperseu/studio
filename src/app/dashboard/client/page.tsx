@@ -23,7 +23,7 @@ export default function ClientDashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <Header title="Próximos Agendamentos" />
+        <Header title="Painel do Cliente" />
         <ClientDashboard />
       </div>
     </div>

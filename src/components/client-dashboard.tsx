@@ -256,19 +256,21 @@ export function ClientDashboard() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="bg-card border-border shadow-lg">
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/4 bg-muted" />
-                    <Skeleton className="h-4 w-1/2 bg-muted mt-2" />
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full bg-muted" />
-                    <Skeleton className="h-4 w-3/4 bg-muted" />
-                </CardContent>
-            </Card>
-        ))}
+      <div className="space-y-8 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="bg-card border-border shadow-lg">
+                    <CardHeader>
+                        <Skeleton className="h-6 w-3/4 bg-muted" />
+                        <Skeleton className="h-4 w-1/2 bg-muted mt-2" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <Skeleton className="h-4 w-full bg-muted" />
+                        <Skeleton className="h-4 w-3/4 bg-muted" />
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
       </div>
     );
   }
@@ -316,37 +318,42 @@ export function ClientDashboard() {
           </Card>
         )}
         
-        {scheduledAppointments.length === 0 ? (
-             <Card className="bg-card border-border shadow-lg text-center py-16">
-                <CardContent>
+        <Card className="bg-card border-border shadow-lg">
+          <CardHeader>
+              <CardTitle>Próximos Agendamentos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {scheduledAppointments.length === 0 ? (
+                <div className="text-center py-16">
                     <Icons.Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-4 text-muted-foreground">Você não tem próximos agendamentos.</p>
-                </CardContent>
-            </Card>
-        ) : (
-            <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                    <TabsTrigger value="all">Todos</TabsTrigger>
-                    <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                    <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
-                </TabsList>
-                <TabsContent value="all">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
-                    </div>
-                </TabsContent>
-                <TabsContent value="inShop">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} />)}
-                    </div>
-                </TabsContent>
-                <TabsContent value="atHome">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} />)}
-                    </div>
-                </TabsContent>
-            </Tabs>
-        )}
+                </div>
+            ) : (
+                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <TabsTrigger value="all">Todos</TabsTrigger>
+                        <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
+                        <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="all">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="inShop">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} />)}
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="atHome">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} />)}
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            )}
+          </CardContent>
+        </Card>
      </div>
      </>
   );
