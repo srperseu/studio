@@ -100,7 +100,7 @@ export function DashboardClient() {
     scheduledList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     pendingList.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
-    return { scheduledAppointments, pendingAppointments };
+    return { scheduledAppointments: scheduledList, pendingAppointments: pendingList };
   }, [appointments]);
 
 
