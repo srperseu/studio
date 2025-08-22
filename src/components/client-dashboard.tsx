@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import type { Appointment, Barber, Client, GeoPoint } from '@/lib/types';
+import type { Appointment, Barber, Client, GeoPoint, Review } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Icons } from './icons';
 import { Skeleton } from './ui/skeleton';
@@ -17,6 +17,7 @@ import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReviewForm } from './review-form';
 
 
 interface AppointmentWithBarber extends Appointment {
@@ -37,7 +38,8 @@ export function ClientDashboard() {
   const [clientData, setClientData] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-  
+  const [reviewingAppointment, setReviewingAppointment] = useState<AppointmentWithBarber | null>(null);
+
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
 
   const fetchClientAndAppointments = async () => {
@@ -59,7 +61,7 @@ export function ClientDashboard() {
           const appointmentsQuery = query(
             collection(db, 'barbers', barber.id, 'appointments'),
             where('clientUid', '==', user.uid),
-            where('status', '==', 'scheduled')
+            where('status', 'in', ['scheduled', 'completed'])
           );
 
           const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -96,14 +98,20 @@ export function ClientDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const scheduledAppointments = useMemo(() => {
+  const { scheduledAppointments, pendingReviewAppointments } = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    return appointments.filter(app => {
+    const scheduled = appointments.filter(app => {
       const appDate = new Date(app.date + 'T00:00:00');
       return app.status === 'scheduled' && appDate >= today;
     });
+
+    const pendingReview = appointments.filter(app => {
+      return app.status === 'completed' && !app.reviewed;
+    });
+
+    return { scheduledAppointments: scheduled, pendingReviewAppointments: pendingReview };
   }, [appointments]);
 
   const filteredScheduled = useMemo(() => {
@@ -123,6 +131,37 @@ export function ClientDashboard() {
         toast({ title: 'Erro', description: result.message, variant: 'destructive' });
     }
     setIsUpdating(null);
+  }
+  
+  const handleReviewSuccess = () => {
+    setReviewingAppointment(null);
+    fetchClientAndAppointments(); // Re-fetch to update lists
+  }
+
+  const BaseAppointmentCard = ({ app, children }: { app: AppointmentWithBarber, children?: React.ReactNode }) => {
+    return (
+        <Card className={cn("bg-card border-border shadow-lg flex flex-col")}>
+            <CardHeader>
+                <CardTitle className="text-primary">{app.serviceName}</CardTitle>
+                <p className="text-sm text-muted-foreground">com {app.barber?.fullName || 'Barbeiro desconhecido'}</p>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icons.Calendar className="h-4 w-4" />
+                    <span>{new Date(app.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' })} às {app.time}</span>
+                </div>
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icons.DollarSign className="h-4 w-4" />
+                    <span>R$ {app.servicePrice !== undefined && app.servicePrice !== null ? app.servicePrice.toFixed(2) : '0.00'}</span>
+                </div>
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icons.MapPin className="h-4 w-4" />
+                    <span>{app.type === 'inShop' ? (app.barber?.address?.fullAddress || 'Endereço não informado') : (app.clientFullAddress || 'Seu endereço') }</span>
+                </div>
+            </CardContent>
+            {children && <CardFooter>{children}</CardFooter>}
+        </Card>
+    );
   }
 
   const AppointmentCard = ({ app }: { app: AppointmentWithBarber}) => {
@@ -146,7 +185,6 @@ export function ClientDashboard() {
         const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
         window.open(url, '_blank');
       };
-
 
     return (
         <Card className={cn("bg-card border-border shadow-lg flex flex-col")}>
@@ -236,6 +274,15 @@ export function ClientDashboard() {
   }
 
   return (
+    <>
+      {reviewingAppointment && (
+          <ReviewForm
+              isOpen={!!reviewingAppointment}
+              onClose={() => setReviewingAppointment(null)}
+              appointment={reviewingAppointment}
+              onSubmitSuccess={handleReviewSuccess}
+          />
+      )}
      <div className="space-y-8 mt-8">
         <div className="flex justify-end">
             <Link href="/booking">
@@ -245,6 +292,29 @@ export function ClientDashboard() {
                 </Button>
             </Link>
         </div>
+
+        {pendingReviewAppointments.length > 0 && (
+          <Card className="bg-card border-border shadow-lg border-l-4 border-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Icons.Star className="fill-current" />
+                Avaliações Pendentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pendingReviewAppointments.map(app => (
+                  <BaseAppointmentCard key={app.id} app={app}>
+                    <Button variant="destructive" onClick={() => setReviewingAppointment(app)} className="w-full">
+                        <Icons.Star className="mr-2 h-4 w-4"/>
+                        Avaliar Serviço
+                    </Button>
+                  </BaseAppointmentCard>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {scheduledAppointments.length === 0 ? (
              <Card className="bg-card border-border shadow-lg text-center py-16">
@@ -278,5 +348,6 @@ export function ClientDashboard() {
             </Tabs>
         )}
      </div>
+     </>
   );
 }

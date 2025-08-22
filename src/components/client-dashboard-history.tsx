@@ -161,7 +161,7 @@ export function ClientDashboardHistory() {
                             Avaliado
                         </Button>
                     ) : (
-                         <Button variant="default" onClick={() => setReviewingAppointment(app)} className="w-full">
+                         <Button variant="destructive" onClick={() => setReviewingAppointment(app)} className="w-full">
                             <Icons.Star className="mr-2 h-4 w-4"/>
                             Avaliar Serviço
                         </Button>
