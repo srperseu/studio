@@ -239,7 +239,7 @@ export function DashboardClient() {
                 ) : ( // context === 'scheduled'
                   <>
                     <Button size="sm" onClick={() => handleGenerateReminder(app)} disabled={isUpdating === app.id} className="w-full sm:w-auto">
-                    {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Sparkles className="mr-2 h-4 w-4" />}
+                    {isUpdating === app.id ? <Icons.Spinner /> : <Icons.Mail className="mr-2 h-4 w-4" />}
                     Lembrete
                     </Button>
                     <AlertDialog>
