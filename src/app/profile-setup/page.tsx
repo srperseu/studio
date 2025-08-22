@@ -414,16 +414,16 @@ export default function ProfileSetupPage() {
                     isSaving={isLoading}
                 >
                      <div className="space-y-6">
-                        <div className="relative h-48 w-full bg-muted rounded-lg overflow-hidden group">
+                        <div className="relative h-48 w-full bg-muted rounded-lg group">
                            <Image
                              src={coverPreview || basicInfo.coverPhotoURL || 'https://placehold.co/800x300.png'}
                              alt="Foto de capa"
                              layout="fill"
                              objectFit="cover"
-                             className="group-hover:opacity-75 transition-opacity"
+                             className="rounded-lg group-hover:opacity-75 transition-opacity"
                              data-ai-hint="barbershop ambience"
                            />
-                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                              <Button type="button" variant="secondary" onClick={() => coverFileInputRef.current?.click()}>
                                <Icons.Upload className="mr-2 h-4 w-4" /> Alterar Capa
                              </Button>
@@ -449,7 +449,7 @@ export default function ProfileSetupPage() {
                             </div>
                         </div>
 
-                        <div className="pt-20 text-center">
+                        <div className="pt-16 text-center">
                           <h2 className="text-2xl font-bold">{user?.displayName}</h2>
                         </div>
                         
