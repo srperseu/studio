@@ -22,6 +22,8 @@ import {
   ChevronsUpDown,
   Pencil,
   Clock,
+  ZoomIn,
+  ZoomOut,
   type LucideProps
 } from 'lucide-react';
 
@@ -48,4 +50,6 @@ export const Icons = {
   ChevronsUpDown: (props: LucideProps) => <ChevronsUpDown {...props} />,
   Pencil: (props: LucideProps) => <Pencil {...props} />,
   Clock: (props: LucideProps) => <Clock {...props} />,
+  ZoomIn: (props: LucideProps) => <ZoomIn {...props} />,
+  ZoomOut: (props: LucideProps) => <ZoomOut {...props} />,
 };

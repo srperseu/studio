@@ -24,6 +24,9 @@ import { Accordion } from '@/components/ui/accordion';
 import { isEqual } from 'lodash';
 import { ProfileAccordionItem } from '@/components/profile-accordion-item';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import ImageCropper from '@/components/image-cropper';
+import { getCroppedImg } from '@/lib/utils';
+import type { Area } from 'react-easy-crop';
 
 const defaultAvailability: Availability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -89,6 +92,11 @@ export default function ProfileSetupPage() {
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [barbershopPreviews, setBarbershopPreviews] = useState<string[]>([]);
+  
+  // New states for image cropping
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -311,8 +319,8 @@ export default function ProfileSetupPage() {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         if (type === 'profile') {
-          setProfilePreview(URL.createObjectURL(file));
-          setBasicInfo(prev => ({ ...prev, photoURL: base64String }));
+          setImageToCrop(base64String);
+          setIsCropperOpen(true);
         } else if (type === 'cover') {
           setCoverPreview(URL.createObjectURL(file));
           setBasicInfo(prev => ({ ...prev, coverPhotoURL: base64String }));
@@ -321,6 +329,21 @@ export default function ProfileSetupPage() {
       reader.readAsDataURL(file);
     }
   };
+
+  const onCropComplete = async (croppedArea: Area, croppedAreaPixels: Area) => {
+    try {
+        if (!imageToCrop) return;
+        const croppedImageBase64 = await getCroppedImg(imageToCrop, croppedAreaPixels, 0);
+        setProfilePreview(croppedImageBase64);
+        setBasicInfo(prev => ({ ...prev, photoURL: croppedImageBase64 }));
+        setIsCropperOpen(false);
+        setImageToCrop(null);
+    } catch (e) {
+        console.error(e);
+        toast({ title: 'Erro ao recortar imagem', variant: 'destructive'});
+    }
+  }
+
 
   const handleBarbershopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -392,6 +415,17 @@ export default function ProfileSetupPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+    
+    {imageToCrop && (
+        <ImageCropper
+            image={imageToCrop}
+            isOpen={isCropperOpen}
+            onClose={() => setIsCropperOpen(false)}
+            onCropComplete={onCropComplete}
+            aspect={1}
+            cropShape='round'
+        />
+    )}
 
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
