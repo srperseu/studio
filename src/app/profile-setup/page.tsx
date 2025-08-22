@@ -419,8 +419,7 @@ export default function ProfileSetupPage() {
                              src={coverPreview || basicInfo.coverPhotoURL || 'https://placehold.co/800x300.png'}
                              alt="Foto de capa"
                              layout="fill"
-                             objectFit="cover"
-                             className="rounded-lg group-hover:opacity-75 transition-opacity"
+                             className="rounded-lg group-hover:opacity-75 transition-opacity object-cover"
                              data-ai-hint="barbershop ambience"
                            />
                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
@@ -435,7 +434,7 @@ export default function ProfileSetupPage() {
                                     <Image
                                         src={profilePreview || basicInfo.photoURL || 'https://placehold.co/128x128.png'}
                                         alt="Preview"
-                                        width={128} height={128}
+                                        layout="fill"
                                         className="rounded-full object-cover"
                                         data-ai-hint="barber portrait"
                                     />
