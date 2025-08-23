@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -196,7 +195,14 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         });
         
         const eventBlocks = (barber.blockouts || [])
-            .filter(event => !event.isAllDay && format(parseISO(event.startDate), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') && event.startTime && event.endTime)
+            .filter(event => {
+                if(event.isAllDay || !event.startTime || !event.endTime) return false;
+                const eventDate = parseISO(event.startDate);
+                // Compare only year, month, and day
+                return eventDate.getFullYear() === selectedDate.getFullYear() &&
+                       eventDate.getMonth() === selectedDate.getMonth() &&
+                       eventDate.getDate() === selectedDate.getDate();
+            })
             .map(event => ({
                 start: timeToMinutes(event.startTime!),
                 end: timeToMinutes(event.endTime!)
@@ -205,26 +211,28 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         const occupiedBlocks = [...appointmentBlocks, ...eventBlocks].sort((a, b) => a.start - b.start);
         
         const slots: string[] = [];
-        const searchIncrement = 15;
+        const searchIncrement = 15; // check for availability every 15 minutes
         
         let currentTime = workStartMinutes;
+
         while (currentTime + serviceDuration <= workEndMinutes) {
-            const potentialEndTime = currentTime + serviceDuration;
+            const slotEnd = currentTime + serviceDuration;
             let isAvailable = true;
 
             for (const block of occupiedBlocks) {
-                if (currentTime < block.end && potentialEndTime > block.start) {
+                // Check for any overlap:
+                // A slot is unavailable if it starts before a block ends AND it ends after that block starts.
+                if (currentTime < block.end && slotEnd > block.start) {
                     isAvailable = false;
+                    // Move current time to the end of the conflicting block to continue searching
                     currentTime = block.end;
-                    break;
+                    break; 
                 }
             }
 
             if (isAvailable) {
                 slots.push(minutesToTime(currentTime));
                 currentTime += searchIncrement;
-            } else {
-                continue;
             }
         }
         
@@ -233,7 +241,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     } else {
         setAvailableTimeSlots([]);
     }
-  }, [selectedDate, barber, selectedService, setValue, existingAppointments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, barber, selectedService, existingAppointments]);
 
 
   useEffect(() => {
