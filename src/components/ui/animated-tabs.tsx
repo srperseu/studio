@@ -4,7 +4,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 interface AnimatedTabsProps {
@@ -27,17 +27,18 @@ export function AnimatedTabs({
 }: AnimatedTabsProps) {
   const [activeTab, setActiveTab] = React.useState(defaultValue);
 
-  React.useEffect(() => {
-    onValueChange(activeTab);
-  }, [activeTab, onValueChange]);
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    onValueChange(value);
+  };
 
   return (
-      <TabsList className={cn("relative p-1 h-10 grid", `grid-cols-${tabs.length}`, className)}>
+    <Tabs defaultValue={defaultValue} onValueChange={handleTabChange} className={className}>
+      <TabsList className={cn("relative p-1 h-10 grid", `grid-cols-${tabs.length}`)}>
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            onClick={() => setActiveTab(tab.value)}
             className={cn(
               "relative z-10 transition-colors duration-200 ease-in-out",
               tabClassName,
@@ -62,5 +63,6 @@ export function AnimatedTabs({
             </motion.div>
         )}
       </TabsList>
+    </Tabs>
   );
 }
