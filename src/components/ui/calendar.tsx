@@ -38,7 +38,7 @@ function Calendar({
         row: "flex w-full mt-2",
         cell: cn(
           "relative h-9 w-9 p-0 text-center text-sm focus-within:relative focus-within:z-20",
-          // Aplica o fundo de preenchimento do intervalo
+          // Aplica o fundo de preenchimento do intervalo com a cor primária (vermelho)
           "[&:has([aria-selected])]:bg-primary/10",
           // Arredonda os cantos do início e fim do intervalo
           "[&:has([aria-selected].day-range-start)]:rounded-l-md",
@@ -54,13 +54,14 @@ function Calendar({
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+        // CORRIGIDO: Estilo sutil para o dia de hoje, para não parecer selecionado
+        day_today: "text-primary ring-1 ring-primary/50",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
-          // Garante que os dias no meio do intervalo usem a cor de texto correta
-          "aria-selected:bg-transparent aria-selected:text-primary",
+          // CORRIGIDO: Cor do texto para melhor legibilidade no intervalo
+          "aria-selected:bg-primary/10 aria-selected:text-foreground",
         day_hidden: "invisible",
         ...classNames,
       }}
