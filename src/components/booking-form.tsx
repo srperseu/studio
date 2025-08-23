@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -579,10 +580,16 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                                                 {review.createdAt ? new Date(review.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : ''}
                                             </p>
                                         </div>
-                                        {review.comment && <p className="mt-2 text-foreground">{review.comment}</p>}
+                                        {review.comment && <p className="mt-2 text-foreground/90 italic">"{review.comment}"</p>}
                                         {review.praises && review.praises.length > 0 && (
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {review.praises.map(praise => <Badge key={praise} variant="secondary">{praise}</Badge>)}
+                                            </div>
+                                        )}
+                                        {review.barberReply && (
+                                            <div className="mt-3 pt-3 border-t border-border/50 bg-primary/10 p-3 rounded-md">
+                                                <p className="font-semibold text-primary text-sm">Resposta do Barbeiro</p>
+                                                <p className="text-foreground/80 italic">"{review.barberReply}"</p>
                                             </div>
                                         )}
                                     </div>

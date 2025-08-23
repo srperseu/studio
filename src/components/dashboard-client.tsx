@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getDocs, doc, collection, query, orderBy, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth.tsx';
-import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction } from '@/app/actions';
+import { generateReminderAction, cancelAppointmentAction, completeAppointmentAction, markAsNoShowAction, acknowledgeLowRatedReviewsAction } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -31,7 +31,7 @@ export function DashboardClient() {
 
   const [barberData, setBarberData] = useState<Barber | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [lowRatedReviews, setLowRatedReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
@@ -39,7 +39,7 @@ export function DashboardClient() {
 
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (user) {
         setIsLoading(true);
         try {
@@ -67,11 +67,14 @@ export function DashboardClient() {
           
           setAppointments(sortedAppointments);
 
-          const reviewsQuery = query(collection(db, `barbers/${user.uid}/reviews`), orderBy('createdAt', 'desc'));
+          const reviewsQuery = query(
+            collection(db, `barbers/${user.uid}/reviews`), 
+            where('rating', '<=', 3),
+            where('acknowledgedByBarber', '==', false)
+          );
           const reviewsSnapshot = await getDocs(reviewsQuery);
           const allReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
-          const lowRatedReviews = allReviews.filter(r => r.rating <= 3);
-          setReviews(lowRatedReviews);
+          setLowRatedReviews(allReviews);
 
 
         } catch (error) {
@@ -81,13 +84,11 @@ export function DashboardClient() {
             setIsLoading(false);
         }
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
-    if (!user) return;
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [fetchData]);
 
   const { scheduledAppointments, pendingAppointments } = useMemo(() => {
     const scheduledList: Appointment[] = [];
@@ -176,6 +177,18 @@ export function DashboardClient() {
     }
   };
   
+  const handleAcknowledgeReviews = async () => {
+      if (!user || lowRatedReviews.length === 0) return;
+      const reviewIds = lowRatedReviews.map(r => r.id);
+      const result = await acknowledgeLowRatedReviewsAction(user.uid, reviewIds);
+      if (result.success) {
+          toast({ description: "Alertas marcados como lidos." });
+          fetchData();
+      } else {
+          toast({ title: "Erro", description: result.message, variant: "destructive" });
+      }
+  }
+
   const AppointmentCard = useCallback(({ app, context }: { app: Appointment, context: 'pending' | 'scheduled' }) => {
       const isActionable = context === 'scheduled' || context === 'pending';
       
@@ -300,19 +313,25 @@ export function DashboardClient() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
 
-           {reviews.length > 0 && (
+           {lowRatedReviews.length > 0 && (
             <Card className="bg-card border-border shadow-lg border-l-4 border-destructive">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                       <p>Você recebeu {reviews.length} avaliações com 3 estrelas ou menos. É uma boa oportunidade para entender o feedback e entrar em contato com os clientes.</p>
-                       <Button variant="link" asChild className="p-0 text-primary">
-                          <Link href="/dashboard/reviews">
-                              Ver todas as avaliações &rarr;
-                          </Link>
-                      </Button>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                       <p>Você recebeu {lowRatedReviews.length} avaliações com 3 estrelas ou menos. É uma boa oportunidade para entender o feedback e entrar em contato com os clientes.</p>
+                       <div className="flex flex-wrap gap-2">
+                          <Button variant="link" asChild className="p-0 text-primary">
+                              <Link href="/dashboard/reviews">
+                                  Ver todas as avaliações &rarr;
+                              </Link>
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleAcknowledgeReviews}>
+                            <Icons.Check className="mr-2 h-4 w-4" />
+                            Marcar como lidas
+                          </Button>
+                       </div>
                     </div>
                 </CardContent>
             </Card>
@@ -419,5 +438,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    

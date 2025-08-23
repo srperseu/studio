@@ -1,3 +1,4 @@
+
 'use server';
 
 import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc, updateDoc, runTransaction, query, where, getDocs, writeBatch } from 'firebase/firestore';
@@ -140,6 +141,7 @@ export async function submitReviewAction(
                 id: reviewRef.id,
                 barberId: barberId,
                 createdAt: serverTimestamp(),
+                acknowledgedByBarber: false,
             });
 
             // 2. Mark appointment as reviewed
@@ -164,6 +166,33 @@ export async function submitReviewAction(
     } catch (error: any) {
         console.error("Erro ao enviar avaliação:", error);
         return { success: false, message: error.message };
+    }
+}
+
+export async function replyToReviewAction(barberId: string, reviewId: string, replyText: string) {
+    try {
+        const reviewRef = doc(db, `barbers/${barberId}/reviews`, reviewId);
+        await updateDoc(reviewRef, { barberReply: replyText });
+        revalidatePath('/dashboard/reviews');
+        revalidatePath('/booking');
+        return { success: true, message: 'Resposta enviada com sucesso!' };
+    } catch (error: any) {
+        return { success: false, message: `Erro ao enviar resposta: ${error.message}` };
+    }
+}
+
+export async function acknowledgeLowRatedReviewsAction(barberId: string, reviewIds: string[]) {
+    try {
+        const batch = writeBatch(db);
+        reviewIds.forEach(reviewId => {
+            const reviewRef = doc(db, `barbers/${barberId}/reviews`, reviewId);
+            batch.update(reviewRef, { acknowledgedByBarber: true });
+        });
+        await batch.commit();
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: `Erro ao marcar como lido: ${error.message}` };
     }
 }
 

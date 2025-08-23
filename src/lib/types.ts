@@ -92,4 +92,6 @@ export interface Review {
     comment?: string;
     praises?: string[]; // e.g., ["Pontual", "Bom de Papo"]
     createdAt: Timestamp;
+    barberReply?: string;
+    acknowledgedByBarber?: boolean;
 }
