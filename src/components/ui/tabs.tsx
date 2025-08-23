@@ -56,7 +56,7 @@ const AnimatedTabsTrigger = React.forwardRef<
     {props['data-state'] === 'active' && (
        <motion.div
           layoutId="active-tab-indicator"
-          className="absolute inset-0 z-[-1] rounded-md bg-background shadow-sm"
+          className="absolute inset-0 z-[-1] rounded-md bg-card shadow-sm"
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
     )}
