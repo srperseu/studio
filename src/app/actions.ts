@@ -59,17 +59,26 @@ export async function createBooking(
   barberId: string,
   clientUid: string,
   clientName: string,
-  selectedService: Service,
+  selectedServiceId: string,
   bookingType: 'inShop' | 'atHome',
   selectedDate: string,
   selectedTime: string
 ) {
   try {
+    // 1. Fetch barber data to validate service
+    const barberRef = doc(db, 'barbers', barberId);
+    const barberSnap = await getDoc(barberRef);
+     if (!barberSnap.exists()) {
+      return { success: false, message: 'Barbeiro não encontrado.' };
+    }
+    const barberData = barberSnap.data() as Barber;
+    const selectedService = barberData.services?.find(s => s.id === selectedServiceId);
+    
     if (!selectedService || !selectedService.name || !selectedService.price) {
         return { success: false, message: 'Serviço inválido ou não selecionado.' };
     }
     
-    // Fetch client data to get coordinates and address
+    // 2. Fetch client data to get coordinates and address
     const clientRef = doc(db, 'clients', clientUid);
     const clientSnap = await getDoc(clientRef);
     if (!clientSnap.exists()) {

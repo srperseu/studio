@@ -57,6 +57,8 @@ export default function ClientBookingPage() {
       
       querySnapshot.forEach((doc) => {
         const barberData = { id: doc.id, ...doc.data() } as Barber;
+        // Ensure services is an array
+        barberData.services = barberData.services || [];
         barbersList.push(barberData);
         if (barberData.coordinates) {
             barberDestinations.push({id: barberData.id, coords: barberData.coordinates});
@@ -71,9 +73,9 @@ export default function ClientBookingPage() {
                 destinations: barberDestinations.map(d => d.coords)
             });
 
-            const barbersWithDistance = barbersList.map((barber, index) => {
+            const barbersWithDistance = barbersList.map((barber) => {
                 const destinationIndex = barberDestinations.findIndex(d => d.id === barber.id);
-                if (destinationIndex !== -1 && travelInfos[destinationIndex]) {
+                if (destinationIndex !== -1 && travelInfos && travelInfos[destinationIndex]) {
                      return {
                         ...barber,
                         distanceText: travelInfos[destinationIndex].distance,
