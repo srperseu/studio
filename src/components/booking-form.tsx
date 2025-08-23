@@ -150,7 +150,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchAppointments();
   }, [selectedDate, barber.id]);
 
-
   const disabledDays = useMemo(() => {
     const inactiveDaysOfWeek = Object.entries(barber.availability || {})
         .filter(([, value]) => !value.active)
@@ -247,6 +246,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           if (isAvailable) {
               slots.push(minutesToTime(currentTime));
               currentTime += searchIncrement;
+          } else {
+              // If we jumped, we need to continue the outer loop to re-check from the new currentTime
+              continue;
           }
       }
       
@@ -255,8 +257,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     } else {
       setAvailableTimeSlots([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, barber, selectedService, existingAppointments]);
+  }, [selectedDate, barber, selectedService, setValue, existingAppointments]);
 
 
   useEffect(() => {
@@ -315,8 +316,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             id: 'temp-' + Date.now(),
             clientName: clientName,
             clientUid: user.uid,
-            clientCoordinates: clientData.coordinates,
-            clientFullAddress: clientData.address?.fullAddress,
+            clientCoordinates: clientData.coordinates || null,
+            clientFullAddress: clientData.address?.fullAddress || '',
             serviceName: selectedService.name,
             servicePrice: finalPrice,
             type: data.bookingType,
@@ -680,4 +681,3 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
-```

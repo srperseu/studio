@@ -91,12 +91,13 @@ export async function createBooking(
         ? (selectedService.atHomePrice || selectedService.price)
         : selectedService.price;
 
-    await addDoc(collection(db, `barbers/${barberId}/appointments`), {
+    const newAppointmentRef = await addDoc(collection(db, `barbers/${barberId}/appointments`), {
       clientName,
       clientUid, // Store the client's UID
       clientCoordinates: clientData.coordinates || null,
       clientFullAddress: clientData.address?.fullAddress || '',
       serviceName: selectedService.name,
+      serviceId: selectedService.id, // Armazena o ID do serviço
       servicePrice: finalPrice,
       type: bookingType,
       date: selectedDate, // Salva a data como string 'YYYY-MM-DD'
@@ -107,7 +108,7 @@ export async function createBooking(
     });
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/client'); // Revalidate client dashboard too
-    return { success: true, message: 'Agendamento realizado com sucesso!' };
+    return { success: true, message: 'Agendamento realizado com sucesso!', appointmentId: newAppointmentRef.id };
   } catch (error: any) {
     console.error("Erro detalhado ao criar agendamento no servidor:", error);
     return { success: false, message: `Erro ao realizar o agendamento: ${error.message} (Código: ${error.code})` };
