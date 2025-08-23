@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateBioAction, updateBarberSection } from '@/app/actions';
 import { format, parseISO } from 'date-fns';
@@ -432,18 +432,42 @@ export default function ProfileSetupPage() {
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (Object.values(dirtySections).some(d => d)) {
-        toast({ title: 'Atenção', description: 'Você tem alterações não salvas. Salve cada seção antes de concluir.', variant: 'destructive'});
-        return;
-    }
     if (!user) return;
     
     setIsLoading(true);
     try {
-        const barberRef = doc(db, 'barbers', user.uid);
-        await setDoc(barberRef, { profileComplete: true }, { merge: true });
-        toast({ title: 'Sucesso!', description: 'Perfil concluído!' });
-        router.push('/dashboard');
+      const finalData: Partial<Barber> = {};
+
+      if (dirtySections.info) {
+        Object.assign(finalData, basicInfo);
+      }
+      if (dirtySections.address) {
+        const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
+        const coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
+        Object.assign(finalData, { address: { ...address, fullAddress: completeAddress }, coordinates });
+      }
+      if (dirtySections.photos) {
+        finalData.barbershopPhotos = barbershopPhotos;
+      }
+      if (dirtySections.availability) {
+        finalData.availability = availability;
+      }
+      if (dirtySections.services) {
+        finalData.services = services;
+      }
+      if (dirtySections.blockouts) {
+        finalData.blockouts = blockouts;
+      }
+
+      // Add the profile complete flag
+      finalData.profileComplete = true;
+
+      const barberRef = doc(db, 'barbers', user.uid);
+      await updateDoc(barberRef, finalData);
+      
+      toast({ title: 'Sucesso!', description: 'Perfil salvo e concluído!' });
+      router.push('/dashboard');
+
     } catch(error: any) {
         toast({ title: 'Erro', description: `Erro ao finalizar perfil: ${error.message}`, variant: 'destructive' });
     } finally {
