@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -26,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StarRating } from './star-rating';
 import { Badge } from './ui/badge';
@@ -173,93 +172,88 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   // Generate time slots when date, service, or appointments change
   useEffect(() => {
-    setValue('selectedTime', '');
+    // Reset time when date or service changes
+    setValue('selectedTime', ''); 
     if (selectedDate && barber?.availability && selectedService) {
-        setIsTimeLoading(true);
+      setIsTimeLoading(true);
 
-        const serviceDuration = selectedService?.duration || DEFAULT_APPOINTMENT_DURATION;
-        
-        const isDayBlocked = barber.blockouts?.some(event => {
-            if (!event.isAllDay) return false;
-            const interval = {
-                start: startOfDay(parseISO(event.startDate)),
-                end: endOfDay(parseISO(event.endDate))
-            };
-            return isWithinInterval(selectedDate, interval);
-        });
+      const serviceDuration = selectedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+      
+       // Check for all-day blockouts
+      const isDayBlocked = barber.blockouts?.some(event => {
+          if (!event.isAllDay) return false;
+          const interval = {
+              start: startOfDay(parseISO(event.startDate)),
+              end: endOfDay(parseISO(event.endDate))
+          };
+          return isWithinInterval(selectedDate, interval);
+      });
 
-        if (isDayBlocked) {
-            setAvailableTimeSlots([]);
-            setIsTimeLoading(false);
-            return;
-        }
-        
-        const dayOfWeekIndex = selectedDate.getDay();
-        const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
-        const availabilityForDay = barber.availability[dayOfWeekName];
+      if (isDayBlocked) {
+          setAvailableTimeSlots([]);
+          setIsTimeLoading(false);
+          return;
+      }
+      
+      const dayOfWeekIndex = selectedDate.getDay();
+      const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
+      const availabilityForDay = barber.availability[dayOfWeekName];
 
-        if (!availabilityForDay || !availabilityForDay.active) {
-            setAvailableTimeSlots([]);
-            setIsTimeLoading(false);
-            return;
-        }
-        
-        const workStartMinutes = timeToMinutes(availabilityForDay.start);
-        const workEndMinutes = timeToMinutes(availabilityForDay.end);
+      if (!availabilityForDay || !availabilityForDay.active) {
+          setAvailableTimeSlots([]);
+          setIsTimeLoading(false);
+          return;
+      }
+      
+      const workStartMinutes = timeToMinutes(availabilityForDay.start);
+      const workEndMinutes = timeToMinutes(availabilityForDay.end);
 
-        const appointmentBlocks = existingAppointments.map(app => {
-            const bookedService = barber.services.find(s => s.name === app.serviceName);
-            const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
-            const start = timeToMinutes(app.time);
-            const end = start + duration;
-            return { start, end };
-        });
-        
-        const eventBlocks = (barber.blockouts || [])
-            .filter(event => {
-                if(event.isAllDay || !event.startTime || !event.endTime) return false;
-                const eventDateStr = format(parseISO(event.startDate), 'yyyy-MM-dd');
-                const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-                return eventDateStr === selectedDateStr;
-            })
-            .map(event => ({
-                start: timeToMinutes(event.startTime!),
-                end: timeToMinutes(event.endTime!)
-            }));
+      // Create a list of occupied blocks including appointments and time-specific blockouts
+      const appointmentBlocks = existingAppointments.map(app => {
+          const bookedService = barber.services.find(s => s.name === app.serviceName);
+          const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+          const start = timeToMinutes(app.time);
+          const end = start + duration;
+          return { start, end };
+      });
+      
+      const eventBlocks = (barber.blockouts || [])
+        .filter(event => !event.isAllDay && format(parseISO(event.startDate), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') && event.startTime && event.endTime)
+        .map(event => ({
+            start: timeToMinutes(event.startTime!),
+            end: timeToMinutes(event.endTime!)
+        }));
 
-        const occupiedBlocks = [...appointmentBlocks, ...eventBlocks].sort((a, b) => a.start - b.start);
-        
-        const slots: string[] = [];
-        const searchIncrement = 15; // check for availability every 15 minutes
-        
-        let currentTime = workStartMinutes;
+      const occupiedBlocks = [...appointmentBlocks, ...eventBlocks].sort((a, b) => a.start - b.start);
+      
+      const slots: string[] = [];
+      const searchIncrement = 15; // check every 15 min
+      
+      let currentTime = workStartMinutes;
+      while (currentTime + serviceDuration <= workEndMinutes) {
+          const potentialEndTime = currentTime + serviceDuration;
+          let isAvailable = true;
 
-        while (currentTime + serviceDuration <= workEndMinutes) {
-            const potentialEndTime = currentTime + serviceDuration;
-            let isAvailable = true;
+          for (const block of occupiedBlocks) {
+              // Check for overlap
+              if (currentTime < block.end && potentialEndTime > block.start) {
+                  isAvailable = false;
+                  // Jump to the end of the current block to find the next free slot
+                  currentTime = block.end;
+                  break;
+              }
+          }
 
-            for (const block of occupiedBlocks) {
-                // Check for any overlap:
-                // A slot is unavailable if it starts before a block ends AND it ends after that block starts.
-                if (currentTime < block.end && potentialEndTime > block.start) {
-                    isAvailable = false;
-                    // Move current time to the end of the conflicting block to continue searching
-                    currentTime = block.end;
-                    break; 
-                }
-            }
-
-            if (isAvailable) {
-                slots.push(minutesToTime(currentTime));
-            }
-             // Always increment by the search step, the logic inside handles the jumps.
-            currentTime += searchIncrement;
-        }
-        
-        setAvailableTimeSlots(slots);
-        setIsTimeLoading(false);
+          if (isAvailable) {
+              slots.push(minutesToTime(currentTime));
+              currentTime += searchIncrement;
+          }
+      }
+      
+      setAvailableTimeSlots(slots);
+      setIsTimeLoading(false);
     } else {
-        setAvailableTimeSlots([]);
+      setAvailableTimeSlots([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, barber, selectedService, existingAppointments]);
@@ -290,7 +284,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
-    const onSubmit = async (data: BookingFormValues) => {
+  const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Você precisa estar logado para agendar.', variant: 'destructive' });
       return;
@@ -686,3 +680,4 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
+```
