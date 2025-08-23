@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
 
 import type { Barber, Client, GeoPoint, Service, Appointment, Review } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,7 +30,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StarRating } from './star-rating';
 import { Badge } from './ui/badge';
-import { AnimatedTabs } from './ui/animated-tabs';
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
@@ -364,17 +364,38 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const TABS = [
     { value: "booking", label: "Agendamento" },
     { value: "details", label: "Detalhes e Avaliações" },
-  ]
+  ];
 
   return (
     <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
-      <AnimatedTabs
-        tabs={TABS}
-        defaultValue={activeTab}
-        onValueChange={setActiveTab}
-        className="w-full"
-        tabClassName="w-full"
-      />
+      <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
+        {TABS.map((tab) => (
+          <TabsTrigger
+            key={tab.value}
+            value={tab.value}
+            className={cn(
+              "relative z-10 transition-colors duration-200 ease-in-out",
+              activeTab !== tab.value &&
+                "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.label}
+          </TabsTrigger>
+        ))}
+        {activeTab && (
+            <motion.div
+              layoutId={`active-tab-indicator-booking-${barber.id}`}
+              className="absolute inset-0 z-0 h-full p-1"
+              style={{
+                width: `calc(100% / ${TABS.length})`,
+                left: `calc(100% / ${TABS.length} * ${TABS.findIndex(t => t.value === activeTab)})`
+              }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+            >
+              <div className="bg-card h-full w-full rounded-md shadow-sm" />
+            </motion.div>
+        )}
+      </TabsList>
       
       <TabsContent value="booking" className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-4">
           <BarberProfileCard />
@@ -554,7 +575,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           </Card>
       </TabsContent>
 
-      <TabsContent value="details">
+      <TabsContent value="details" className="mt-4">
         <Card>
             <CardHeader>
                 <CardTitle>Avaliações dos Clientes</CardTitle>
@@ -616,7 +637,3 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
-
-    
-
-    

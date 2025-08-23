@@ -3,8 +3,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 interface AnimatedTabsProps {
@@ -27,22 +27,17 @@ export function AnimatedTabs({
 }: AnimatedTabsProps) {
   const [activeTab, setActiveTab] = React.useState(defaultValue);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    onValueChange(value);
-  };
+  React.useEffect(() => {
+    onValueChange(activeTab);
+  }, [activeTab, onValueChange]);
 
   return (
-    <Tabs
-      defaultValue={defaultValue}
-      onValueChange={handleTabChange}
-      className={cn("relative", className)}
-    >
-      <TabsList className={cn("relative bg-muted p-1 h-10 grid", `grid-cols-${tabs.length}`)}>
+      <TabsList className={cn("relative p-1 h-10 grid", `grid-cols-${tabs.length}`, className)}>
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
+            onClick={() => setActiveTab(tab.value)}
             className={cn(
               "relative z-10 transition-colors duration-200 ease-in-out",
               tabClassName,
@@ -53,8 +48,7 @@ export function AnimatedTabs({
             {tab.label}
           </TabsTrigger>
         ))}
-        {/* O elemento que faz a mágica da animação */}
-        <AnimatePresence>
+        {activeTab && (
             <motion.div
               layoutId={`active-tab-indicator-barberflow-${defaultValue}`}
               className="absolute inset-0 z-0 h-full p-1"
@@ -66,10 +60,7 @@ export function AnimatedTabs({
             >
               <div className="bg-card h-full w-full rounded-md shadow-sm" />
             </motion.div>
-        </AnimatePresence>
+        )}
       </TabsList>
-    </Tabs>
   );
 }
-
-    
