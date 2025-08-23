@@ -106,7 +106,7 @@ export default function ProfileSetupPage() {
   const [newBlockout, setNewBlockout] = useState(initialBlockout);
   const [blockoutDateRange, setBlockoutDateRange] = useState<DateRange | undefined>({
     from: new Date(),
-    to: new Date(),
+    to: undefined,
   });
 
   const [newService, setNewService] = useState<Service>(initialService);
@@ -748,6 +748,7 @@ export default function ProfileSetupPage() {
                                                         onSelect={setBlockoutDateRange}
                                                         numberOfMonths={2}
                                                         locale={ptBR}
+                                                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                                     />
                                                 </PopoverContent>
                                             </Popover>
