@@ -12,7 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 
 import type { Barber, Client, GeoPoint, Service, Appointment, Review } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -323,12 +323,10 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
               </p>
                <div className="flex items-center gap-2 mt-2">
                    {barber.ratingAverage && barber.reviewCount ? (
-                        <button onClick={() => setActiveTab('details')} className="p-0 m-0 h-auto bg-transparent hover:bg-transparent">
-                            <Badge variant="secondary" className="flex items-center gap-1 bg-amber-500 text-black hover:bg-amber-400 cursor-pointer">
-                               <Icons.Star className="h-3 w-3 fill-current" />
-                               <span>{barber.ratingAverage.toFixed(1)}</span>
-                               <span className="text-black/70 ml-1">({barber.reviewCount} avaliações)</span>
-                            </Badge>
+                         <button onClick={() => setActiveTab('details')} className="flex items-center gap-1 text-sm text-amber-500 bg-transparent p-0 h-auto hover:opacity-80">
+                           <Icons.Star className="h-4 w-4 fill-current" />
+                           <span className="font-bold text-foreground">{barber.ratingAverage.toFixed(1)}</span>
+                           <span className="text-muted-foreground">({barber.reviewCount} avaliações)</span>
                         </button>
                    ) : (
                        <Badge variant="outline">Novo</Badge>
@@ -370,34 +368,30 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
-      <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
-        {TABS.map((tab) => (
-          <TabsTrigger
-            key={tab.value}
-            value={tab.value}
-            className={cn(
-              "relative z-10 transition-colors duration-200 ease-in-out",
-              activeTab !== tab.value &&
-                "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </TabsTrigger>
-        ))}
-        {activeTab && (
-            <motion.div
-              layoutId={`active-tab-indicator-booking-${barber.id}`}
-              className="absolute inset-0 z-0 h-full p-1"
-              style={{
-                width: `calc(100% / ${TABS.length})`,
-                left: `calc(100% / ${TABS.length} * ${TABS.findIndex(t => t.value === activeTab)})`
-              }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+      <LayoutGroup>
+        <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
+            {TABS.map((tab) => (
+            <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className={cn(
+                "relative z-10 transition-colors duration-200 ease-in-out",
+                activeTab !== tab.value &&
+                    "text-muted-foreground hover:text-foreground"
+                )}
             >
-              <div className="bg-card h-full w-full rounded-md shadow-sm" />
-            </motion.div>
-        )}
-      </TabsList>
+                {tab.label}
+                 {activeTab === tab.value && (
+                    <motion.div
+                        layoutId="active-tab-indicator-booking"
+                        className="absolute inset-0 z-[-1] rounded-md bg-card shadow-sm"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                )}
+            </TabsTrigger>
+            ))}
+        </TabsList>
+      </LayoutGroup>
       
       <TabsContent value="booking" className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-4">
           <BarberProfileCard />

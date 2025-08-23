@@ -35,13 +35,13 @@ export function BarberCard({ barber, onSelect }: BarberCardProps) {
                     <CardTitle>{barber.fullName}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
                        {barber.ratingAverage && barber.reviewCount ? (
-                            <Badge variant="secondary" className="flex items-center gap-1 bg-amber-500 text-black">
-                               <Icons.Star className="h-3 w-3 fill-current" />
-                               <span>{barber.ratingAverage.toFixed(1)}</span>
-                               <span className="text-muted-foreground/80 ml-1">({barber.reviewCount})</span>
-                            </Badge>
+                            <div className="flex items-center gap-1 text-sm text-amber-500">
+                               <Icons.Star className="h-4 w-4 fill-current" />
+                               <span className="font-bold text-foreground">{barber.ratingAverage.toFixed(1)}</span>
+                               <span className="text-muted-foreground">({barber.reviewCount})</span>
+                            </div>
                        ) : (
-                           <Badge variant="destructive">
+                           <Badge variant="outline">
                                 <Icons.Sparkles className="mr-1 h-3 w-3"/>
                                 Novo
                            </Badge>
