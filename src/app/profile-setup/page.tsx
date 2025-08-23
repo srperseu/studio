@@ -9,7 +9,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateBioAction, updateBarberSection } from '@/app/actions';
-
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import type { Barber, GeoPoint, Address, Service, Availability } from '@/lib/types';
+import type { Barber, GeoPoint, Address, Service, Availability, BlockOutEvent } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Switch } from '@/components/ui/switch';
 import { Accordion } from '@/components/ui/accordion';
@@ -27,6 +28,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ImageCropper from '@/components/image-cropper';
 import { getCroppedImg } from '@/lib/utils';
 import type { Area } from 'react-easy-crop';
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateRange } from 'react-day-picker';
 
 const defaultAvailability: Availability = {
   'Segunda': { active: false, start: '09:00', end: '18:00' },
@@ -50,6 +55,14 @@ const initialAddress: Address = {
 };
 
 const initialService: Service = { id: '', name: '', price: 0, atHomePrice: 0, duration: 60 };
+const initialBlockout: Omit<BlockOutEvent, 'id'> = {
+  title: '',
+  startDate: format(new Date(), 'yyyy-MM-dd'),
+  endDate: format(new Date(), 'yyyy-MM-dd'),
+  isAllDay: false,
+  startTime: '09:00',
+  endTime: '10:00',
+}
 
 
 async function getCoordinatesForAddress(address: string, apiKey: string): Promise<GeoPoint | null> {
@@ -87,6 +100,13 @@ export default function ProfileSetupPage() {
   const [barbershopPhotos, setBarbershopPhotos] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Availability>(defaultAvailability);
   const [services, setServices] = useState<Service[]>([]);
+  const [blockouts, setBlockouts] = useState<BlockOutEvent[]>([]);
+  
+  const [newBlockout, setNewBlockout] = useState(initialBlockout);
+  const [blockoutDateRange, setBlockoutDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date(),
+  });
 
   const [newService, setNewService] = useState<Service>(initialService);
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
@@ -123,9 +143,10 @@ export default function ProfileSetupPage() {
       photos: !isEqual(barbershopPhotos, savedProfile.barbershopPhotos || []),
       availability: !isEqual(availability, savedProfile.availability || defaultAvailability),
       services: !isEqual(services, savedProfile.services || []),
+      blockouts: !isEqual(blockouts, savedProfile.blockouts || []),
     };
     setDirtySections(dirty);
-  }, [basicInfo, address, barbershopPhotos, availability, services, savedProfile]);
+  }, [basicInfo, address, barbershopPhotos, availability, services, blockouts, savedProfile]);
 
   useEffect(() => {
     checkDirty();
@@ -160,6 +181,7 @@ export default function ProfileSetupPage() {
           setBarbershopPhotos(data.barbershopPhotos || []);
           setAvailability(data.availability || defaultAvailability);
           setServices(data.services || []);
+          setBlockouts(data.blockouts || []);
 
           if (data.photoURL) setProfilePreview(data.photoURL);
           if (data.coverPhotoURL) setCoverPreview(data.coverPhotoURL);
@@ -199,6 +221,8 @@ export default function ProfileSetupPage() {
             dataToSave = { availability };
         } else if (section === 'services') {
             dataToSave = { services };
+        } else if (section === 'blockouts') {
+            dataToSave = { blockouts };
         }
 
         const result = await updateBarberSection(user.uid, dataToSave);
@@ -311,6 +335,37 @@ export default function ProfileSetupPage() {
     if(editingServiceId === serviceId) {
         handleCancelEdit();
     }
+  };
+
+  // Blockout handlers
+  const handleAddBlockout = () => {
+    if (!newBlockout.title) {
+        toast({ title: 'Erro', description: 'O título do evento é obrigatório.', variant: 'destructive' });
+        return;
+    }
+     if (!blockoutDateRange?.from) {
+        toast({ title: 'Erro', description: 'A data de início é obrigatória.', variant: 'destructive' });
+        return;
+    }
+
+    const eventToAdd: BlockOutEvent = {
+        id: newBlockout.title.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
+        title: newBlockout.title,
+        isAllDay: newBlockout.isAllDay,
+        startDate: format(blockoutDateRange.from, 'yyyy-MM-dd'),
+        endDate: format(blockoutDateRange.to || blockoutDateRange.from, 'yyyy-MM-dd'),
+        startTime: newBlockout.startTime,
+        endTime: newBlockout.endTime,
+    };
+    
+    setBlockouts(prev => [...prev, eventToAdd]);
+    setNewBlockout(initialBlockout);
+    setBlockoutDateRange({ from: new Date(), to: new Date() });
+    document.getElementById('close-blockout-dialog')?.click();
+  };
+
+  const handleRemoveBlockout = (id: string) => {
+      setBlockouts(prev => prev.filter(b => b.id !== id));
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
@@ -632,6 +687,114 @@ export default function ProfileSetupPage() {
                     </div>
                 </ProfileAccordionItem>
                 
+                 <ProfileAccordionItem
+                    value="item-6"
+                    title="Eventos e Folgas"
+                    icon={<Icons.Clock />}
+                    isDirty={dirtySections.blockouts}
+                    onSave={() => handleSectionSave('blockouts')}
+                    isSaving={isLoading}
+                 >
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <p className="text-muted-foreground">Adicione eventos para bloquear seu calendário.</p>
+                             <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">Adicionar Evento</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Adicionar Novo Evento/Bloqueio</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="blockout-title">Título</Label>
+                                            <Input id="blockout-title" value={newBlockout.title} onChange={(e) => setNewBlockout(p => ({...p, title: e.target.value}))} placeholder="Ex: Férias, Consulta Médica" />
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Switch id="isAllDay" checked={newBlockout.isAllDay} onCheckedChange={(checked) => setNewBlockout(p => ({ ...p, isAllDay: checked }))} />
+                                            <Label htmlFor="isAllDay">Dia Inteiro?</Label>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Data</Label>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                     <Button
+                                                        variant={"outline"}
+                                                        className={"w-full justify-start text-left font-normal"}
+                                                     >
+                                                        <Icons.Calendar className="mr-2 h-4 w-4" />
+                                                        {blockoutDateRange?.from ? (
+                                                            blockoutDateRange.to ? (
+                                                            <>
+                                                                {format(blockoutDateRange.from, "LLL dd, y")} -{" "}
+                                                                {format(blockoutDateRange.to, "LLL dd, y")}
+                                                            </>
+                                                            ) : (
+                                                            format(blockoutDateRange.from, "LLL dd, y")
+                                                            )
+                                                        ) : (
+                                                            <span>Escolha um intervalo de datas</span>
+                                                        )}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        initialFocus
+                                                        mode="range"
+                                                        defaultMonth={blockoutDateRange?.from}
+                                                        selected={blockoutDateRange}
+                                                        onSelect={setBlockoutDateRange}
+                                                        numberOfMonths={2}
+                                                        locale={ptBR}
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                        {!newBlockout.isAllDay && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="startTime">Início</Label>
+                                                    <Input id="startTime" type="time" value={newBlockout.startTime} onChange={e => setNewBlockout(p => ({...p, startTime: e.target.value}))} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="endTime">Fim</Label>
+                                                    <Input id="endTime" type="time" value={newBlockout.endTime} onChange={e => setNewBlockout(p => ({...p, endTime: e.target.value}))} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose id="close-blockout-dialog" asChild>
+                                            <Button type="button" variant="ghost">Cancelar</Button>
+                                        </DialogClose>
+                                        <Button type="button" onClick={handleAddBlockout}>Adicionar</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                             </Dialog>
+                        </div>
+                         {blockouts.length > 0 ? (
+                           blockouts.map(event => (
+                            <div key={event.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                <div>
+                                    <p className="font-semibold">{event.title}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                       {format(parseISO(event.startDate), "dd/MM/yy")}
+                                       {event.startDate !== event.endDate && ` - ${format(parseISO(event.endDate), "dd/MM/yy")}`}
+                                       {!event.isAllDay && ` das ${event.startTime} às ${event.endTime}`}
+                                    </p>
+                                </div>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveBlockout(event.id)}>
+                                    <Icons.X className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                           ))
+                         ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento de bloqueio criado.</p>
+                         )}
+                    </div>
+                 </ProfileAccordionItem>
+
                 <ProfileAccordionItem
                     value="item-5"
                     title="Meu Catálogo de Serviços"

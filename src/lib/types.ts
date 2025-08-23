@@ -34,6 +34,15 @@ export interface Address {
   fullAddress: string;
 }
 
+export interface BlockOutEvent {
+  id: string;
+  title: string;
+  startDate: string; // Formato 'yyyy-MM-dd'
+  endDate: string;   // O mesmo que startDate para eventos de um dia
+  isAllDay: boolean;
+  startTime?: string; // Formato 'HH:mm'
+  endTime?: string;   // Formato 'HH:mm'
+}
 
 export interface Barber {
   id: string;
@@ -52,6 +61,7 @@ export interface Barber {
   barbershopPhotos?: string[];
   reviewCount?: number;
   ratingAverage?: number;
+  blockouts?: BlockOutEvent[];
 }
 
 export interface Client {

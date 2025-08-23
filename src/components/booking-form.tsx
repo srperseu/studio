@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -157,7 +157,21 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     setValue('selectedTime', ''); 
     if (selectedDate && barber?.availability && selectedService) {
       setIsTimeLoading(true);
+
       const serviceDuration = selectedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+      
+       // Check for all-day blockouts
+      const isDayBlocked = barber.blockouts?.some(event => {
+          const startDate = parseISO(event.startDate);
+          const endDate = parseISO(event.endDate);
+          return event.isAllDay && selectedDate >= startDate && selectedDate <= endDate;
+      });
+
+      if (isDayBlocked) {
+          setAvailableTimeSlots([]);
+          setIsTimeLoading(false);
+          return;
+      }
       
       const dayOfWeekIndex = selectedDate.getDay();
       const dayOfWeekName = dayOfWeekMap[dayOfWeekIndex];
@@ -172,16 +186,23 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       const workStartMinutes = timeToMinutes(availabilityForDay.start);
       const workEndMinutes = timeToMinutes(availabilityForDay.end);
 
-      // Create a list of occupied blocks with their start and end times
-      const occupiedBlocks = existingAppointments
-        .map(app => {
-            const bookedService = barber.services.find(s => s.name === app.serviceName);
-            const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
-            const start = timeToMinutes(app.time);
-            const end = start + duration;
-            return { start, end };
-        })
-        .sort((a, b) => a.start - b.start);
+      // Create a list of occupied blocks including appointments and time-specific blockouts
+      const appointmentBlocks = existingAppointments.map(app => {
+          const bookedService = barber.services.find(s => s.name === app.serviceName);
+          const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
+          const start = timeToMinutes(app.time);
+          const end = start + duration;
+          return { start, end };
+      });
+      
+      const eventBlocks = (barber.blockouts || [])
+        .filter(event => !event.isAllDay && format(parseISO(event.startDate), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') && event.startTime && event.endTime)
+        .map(event => ({
+            start: timeToMinutes(event.startTime!),
+            end: timeToMinutes(event.endTime!)
+        }));
+
+      const occupiedBlocks = [...appointmentBlocks, ...eventBlocks].sort((a, b) => a.start - b.start);
       
       const slots: string[] = [];
       const searchIncrement = 15; // check every 15 min
@@ -192,6 +213,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           let isAvailable = true;
 
           for (const block of occupiedBlocks) {
+              // Check for overlap
               if (currentTime < block.end && potentialEndTime > block.start) {
                   isAvailable = false;
                   // Jump to the end of the current block to find the next free slot
@@ -203,6 +225,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
           if (isAvailable) {
               slots.push(minutesToTime(currentTime));
               currentTime += searchIncrement;
+          } else {
+              // If we jumped, we need to continue the outer loop
+              continue;
           }
       }
       
@@ -323,11 +348,11 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
               </p>
                <div className="flex items-center gap-2 mt-2">
                    {barber.ratingAverage && barber.reviewCount ? (
-                         <button onClick={() => setActiveTab('details')} className="flex items-center gap-1 text-sm text-amber-500 bg-transparent p-0 h-auto hover:opacity-80">
+                         <Button onClick={() => setActiveTab('details')} variant="link" className="flex items-center gap-1 text-sm text-amber-500 p-0 h-auto hover:opacity-80">
                            <Icons.Star className="h-4 w-4 fill-current" />
                            <span className="font-bold text-foreground">{barber.ratingAverage.toFixed(1)}</span>
                            <span className="text-muted-foreground">({barber.reviewCount} avaliações)</span>
-                        </button>
+                        </Button>
                    ) : (
                        <Badge variant="outline">Novo</Badge>
                    )}
