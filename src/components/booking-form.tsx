@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -7,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, parseISO, isWithinInterval } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -162,11 +161,12 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       
        // Check for all-day blockouts
       const isDayBlocked = barber.blockouts?.some(event => {
-          const startDate = parseISO(event.startDate);
-          const endDate = parseISO(event.endDate);
-          // Set hours to 0 to compare dates correctly
-          const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-          return event.isAllDay && selectedDateOnly >= startDate && selectedDateOnly <= endDate;
+          if (!event.isAllDay) return false;
+          const interval = {
+              start: startOfDay(parseISO(event.startDate)),
+              end: endOfDay(parseISO(event.endDate))
+          };
+          return isWithinInterval(selectedDate, interval);
       });
 
       if (isDayBlocked) {
@@ -266,24 +266,24 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
-  const disabledDays = useMemo(() => {
-    const inactiveDaysOfWeek = Object.entries(barber.availability || {})
-        .filter(([, value]) => !value.active)
-        .map(([key]) => dayOfWeekMap.indexOf(key));
+    const disabledDays = useMemo(() => {
+        const inactiveDaysOfWeek = Object.entries(barber.availability || {})
+            .filter(([, value]) => !value.active)
+            .map(([key]) => dayOfWeekMap.indexOf(key));
 
-    const blockedDateRanges = (barber.blockouts || [])
-        .filter(event => event.isAllDay)
-        .map(event => ({
-            from: parseISO(event.startDate),
-            to: parseISO(event.endDate)
-        }));
+        const blockedDateRanges = (barber.blockouts || [])
+            .filter(event => event.isAllDay)
+            .map(event => ({
+                from: startOfDay(parseISO(event.startDate)),
+                to: endOfDay(parseISO(event.endDate))
+            }));
 
-    return [
-        (date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0)),
-        { daysOfWeek: inactiveDaysOfWeek },
-        ...blockedDateRanges,
-    ];
-}, [barber.availability, barber.blockouts]);
+        return [
+            (date: Date) => date < startOfDay(new Date()),
+            { daysOfWeek: inactiveDaysOfWeek },
+            ...blockedDateRanges,
+        ];
+    }, [barber.availability, barber.blockouts]);
 
   const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
