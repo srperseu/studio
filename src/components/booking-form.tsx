@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StarRating } from './star-rating';
 import { Badge } from './ui/badge';
@@ -150,6 +150,25 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   }, [selectedDate, barber.id]);
 
 
+  const disabledDays = useMemo(() => {
+    const inactiveDaysOfWeek = Object.entries(barber.availability || {})
+        .filter(([, value]) => !value.active)
+        .map(([key]) => dayOfWeekMap.indexOf(key));
+
+    const blockedDateRanges = (barber.blockouts || [])
+        .filter(event => event.isAllDay)
+        .map(event => ({
+            from: startOfDay(parseISO(event.startDate)),
+            to: endOfDay(parseISO(event.endDate))
+        }));
+
+    return [
+        (date: Date) => date < startOfDay(new Date()),
+        { daysOfWeek: inactiveDaysOfWeek },
+        ...blockedDateRanges,
+    ];
+  }, [barber.availability, barber.blockouts]);
+
   // Generate time slots when date, service, or appointments change
   useEffect(() => {
     setValue('selectedTime', '');
@@ -197,11 +216,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         const eventBlocks = (barber.blockouts || [])
             .filter(event => {
                 if(event.isAllDay || !event.startTime || !event.endTime) return false;
-                const eventDate = parseISO(event.startDate);
-                // Compare only year, month, and day
-                return eventDate.getFullYear() === selectedDate.getFullYear() &&
-                       eventDate.getMonth() === selectedDate.getMonth() &&
-                       eventDate.getDate() === selectedDate.getDate();
+                const eventDateStr = format(parseISO(event.startDate), 'yyyy-MM-dd');
+                const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+                return eventDateStr === selectedDateStr;
             })
             .map(event => ({
                 start: timeToMinutes(event.startTime!),
@@ -270,26 +287,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
-    const disabledDays = useMemo(() => {
-        const inactiveDaysOfWeek = Object.entries(barber.availability || {})
-            .filter(([, value]) => !value.active)
-            .map(([key]) => dayOfWeekMap.indexOf(key));
-
-        const blockedDateRanges = (barber.blockouts || [])
-            .filter(event => event.isAllDay)
-            .map(event => ({
-                from: startOfDay(parseISO(event.startDate)),
-                to: endOfDay(parseISO(event.endDate))
-            }));
-
-        return [
-            (date: Date) => date < startOfDay(new Date()),
-            { daysOfWeek: inactiveDaysOfWeek },
-            ...blockedDateRanges,
-        ];
-    }, [barber.availability, barber.blockouts]);
-
-  const onSubmit = async (data: BookingFormValues) => {
+    const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Você precisa estar logado para agendar.', variant: 'destructive' });
       return;
