@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -727,11 +728,11 @@ export default function ProfileSetupPage() {
                                                         {blockoutDateRange?.from ? (
                                                             blockoutDateRange.to ? (
                                                             <>
-                                                                {format(blockoutDateRange.from, "LLL dd, y")} -{" "}
-                                                                {format(blockoutDateRange.to, "LLL dd, y")}
+                                                                {format(blockoutDateRange.from, "PPP", { locale: ptBR })} -{" "}
+                                                                {format(blockoutDateRange.to, "PPP", { locale: ptBR })}
                                                             </>
                                                             ) : (
-                                                            format(blockoutDateRange.from, "LLL dd, y")
+                                                            format(blockoutDateRange.from, "PPP", { locale: ptBR })
                                                             )
                                                         ) : (
                                                             <span>Escolha um intervalo de datas</span>
