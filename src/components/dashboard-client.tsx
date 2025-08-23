@@ -21,7 +21,7 @@ import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, AnimatedTabsTrigger } from "@/components/ui/tabs";
 
 
 export function DashboardClient() {
@@ -319,7 +319,7 @@ export function DashboardClient() {
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
                   </div>
-                  <Button variant="link" size="sm" onClick={handleAcknowledgeReviews} className="text-muted-foreground hover:text-primary p-0 h-auto">
+                  <Button variant="link" size="sm" onClick={handleAcknowledgeReviews} className="text-destructive hover:text-destructive/80 p-0 h-auto">
                     <Icons.Check className="mr-2 h-4 w-4" />
                     Marcar como lidas
                   </Button>
@@ -357,13 +357,17 @@ export function DashboardClient() {
             <CardContent>
               {scheduledAppointments.length > 0 ? (
                 <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-4">
-                      <TabsTrigger value="all">Todos</TabsTrigger>
-                      <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                      <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
+                  <TabsList>
+                      <AnimatedTabsTrigger value="all">Todos</AnimatedTabsTrigger>
+                      <AnimatedTabsTrigger value="inShop">Na Barbearia</AnimatedTabsTrigger>
+                      <AnimatedTabsTrigger value="atHome">Em Domicílio</AnimatedTabsTrigger>
                   </TabsList>
-                  <div className="space-y-4">
-                      {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled"/>)}
+                  <div className="space-y-4 mt-4">
+                      {filteredScheduled.length > 0 ? (
+                          filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled"/>)
+                      ) : (
+                          <p className="text-muted-foreground text-center py-8 col-span-full">Nenhum agendamento encontrado para este filtro.</p>
+                      )}
                   </div>
                 </Tabs>
               ) : (
@@ -438,5 +442,3 @@ function DashboardSkeleton() {
         </>
     )
 }
-
-    
