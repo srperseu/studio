@@ -323,11 +323,13 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
               </p>
                <div className="flex items-center gap-2 mt-2">
                    {barber.ratingAverage && barber.reviewCount ? (
-                        <Badge variant="secondary" className="flex items-center gap-1 bg-amber-500 text-black">
-                           <Icons.Star className="h-3 w-3 fill-current" />
-                           <span>{barber.ratingAverage.toFixed(1)}</span>
-                           <span className="text-muted-foreground/80 ml-1">({barber.reviewCount} avaliações)</span>
-                        </Badge>
+                        <button onClick={() => setActiveTab('details')} className="p-0 m-0 h-auto bg-transparent hover:bg-transparent">
+                            <Badge variant="secondary" className="flex items-center gap-1 bg-amber-500 text-black hover:bg-amber-400 cursor-pointer">
+                               <Icons.Star className="h-3 w-3 fill-current" />
+                               <span>{barber.ratingAverage.toFixed(1)}</span>
+                               <span className="text-black/70 ml-1">({barber.reviewCount} avaliações)</span>
+                            </Badge>
+                        </button>
                    ) : (
                        <Badge variant="outline">Novo</Badge>
                    )}
@@ -367,7 +369,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   ];
 
   return (
-    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
       <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
         {TABS.map((tab) => (
           <TabsTrigger
