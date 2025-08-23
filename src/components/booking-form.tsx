@@ -28,7 +28,7 @@ import { Skeleton } from './ui/skeleton';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StarRating } from './star-rating';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from './ui/badge';
 import { AnimatedTabs } from './ui/animated-tabs';
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -367,7 +367,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   ]
 
   return (
-    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8">
+    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
       <AnimatedTabs
         tabs={TABS}
         defaultValue={activeTab}
@@ -616,5 +616,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
+
+    
 
     
