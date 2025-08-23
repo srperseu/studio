@@ -1,20 +1,20 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/app/actions';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, LayoutGroup } from 'framer-motion';
 
-import type { Barber, Client, GeoPoint, Service, Appointment, Review } from '@/lib/types';
+import type { Barber, Client, GeoPoint, Service, Appointment, Review, BlockOutEvent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Icons } from './icons';
@@ -264,6 +264,24 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
+  const disabledDays = useMemo(() => {
+    const inactiveDaysOfWeek = Object.entries(barber.availability || {})
+        .filter(([, value]) => !value.active)
+        .map(([key]) => dayOfWeekMap.indexOf(key));
+
+    const blockedDates: (Date | { from: Date; to: Date })[] = (barber.blockouts || [])
+        .filter(event => event.isAllDay)
+        .map(event => ({
+            from: parseISO(event.startDate),
+            to: parseISO(event.endDate)
+        }));
+
+    return [
+        (date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0)),
+        (date: Date) => inactiveDaysOfWeek.includes(date.getDay()),
+        ...blockedDates
+    ];
+}, [barber.availability, barber.blockouts]);
 
   const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
@@ -393,7 +411,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
-      <LayoutGroup>
         <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
             {TABS.map((tab) => (
             <TabsTrigger
@@ -416,7 +433,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             </TabsTrigger>
             ))}
         </TabsList>
-      </LayoutGroup>
       
       <TabsContent value="booking" className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-4">
           <BarberProfileCard />
@@ -532,7 +548,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
                                       mode="single"
                                       selected={field.value}
                                       onSelect={field.onChange}
-                                      disabled={date => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                      disabled={disabledDays}
                                       initialFocus
                                       locale={ptBR}
                                     />
