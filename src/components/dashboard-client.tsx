@@ -54,6 +54,7 @@ export function DashboardClient() {
              } as Barber);
           }
 
+          // Fetch all appointments
           const appointmentsQuery = query(collection(db, `barbers/${user.uid}/appointments`));
           const appointmentsSnapshot = await getDocs(appointmentsQuery);
           const allAppointments: Appointment[] = [];
@@ -64,18 +65,17 @@ export function DashboardClient() {
               const dateB = new Date(`${b.date}T${b.time}`);
               return dateB.getTime() - dateA.getTime();
           });
-          
           setAppointments(sortedAppointments);
 
-          const reviewsQuery = query(
-            collection(db, `barbers/${user.uid}/reviews`), 
-            where('rating', '<=', 3),
-            where('acknowledgedByBarber', '==', false)
-          );
+          // Fetch all reviews and filter on the client
+          const reviewsQuery = query(collection(db, `barbers/${user.uid}/reviews`), orderBy('createdAt', 'desc'));
           const reviewsSnapshot = await getDocs(reviewsQuery);
           const allReviews = reviewsSnapshot.docs.map(doc => doc.data() as Review);
-          setLowRatedReviews(allReviews);
-
+          
+          const unacknowledgedLowRated = allReviews.filter(review => 
+            review.rating <= 3 && !review.acknowledgedByBarber
+          );
+          setLowRatedReviews(unacknowledgedLowRated);
 
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
