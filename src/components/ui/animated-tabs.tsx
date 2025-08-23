@@ -38,7 +38,7 @@ export function AnimatedTabs({
       onValueChange={handleTabChange}
       className={cn("relative", className)}
     >
-      <TabsList className="relative bg-muted p-1 h-10 grid w-full grid-cols-3">
+      <TabsList className={cn("relative bg-muted p-1 h-10 grid", `grid-cols-${tabs.length}`)}>
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
@@ -56,7 +56,7 @@ export function AnimatedTabs({
         {/* O elemento que faz a mágica da animação */}
         <AnimatePresence>
             <motion.div
-              layoutId="active-tab-indicator-barberflow-client"
+              layoutId={`active-tab-indicator-barberflow-${defaultValue}`}
               className="absolute inset-0 z-0 h-full p-1"
               style={{
                 width: `calc(100% / ${tabs.length})`,
@@ -71,3 +71,5 @@ export function AnimatedTabs({
     </Tabs>
   );
 }
+
+    

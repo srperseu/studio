@@ -25,10 +25,11 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getTravelInfo } from '@/ai/flows/get-travel-info';
 import { Skeleton } from './ui/skeleton';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StarRating } from './star-rating';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
+import { AnimatedTabs } from './ui/animated-tabs';
 
 const dayOfWeekMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DEFAULT_APPOINTMENT_DURATION = 60; // 60 minutos como padrão
@@ -84,6 +85,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isReviewsLoading, setIsReviewsLoading] = useState(true);
   const [starFilter, setStarFilter] = useState<number | 'all'>('all');
+  const [activeTab, setActiveTab] = useState('booking');
 
   const filteredReviews = useMemo(() => {
     if (starFilter === 'all') return reviews;
@@ -358,13 +360,21 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         </CardContent>
       </Card>
   );
+  
+  const TABS = [
+    { value: "booking", label: "Agendamento" },
+    { value: "details", label: "Detalhes e Avaliações" },
+  ]
 
   return (
-    <Tabs defaultValue="booking" className="mt-8">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="booking">Agendamento</TabsTrigger>
-        <TabsTrigger value="details">Detalhes e Avaliações</TabsTrigger>
-      </TabsList>
+    <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8">
+      <AnimatedTabs
+        tabs={TABS}
+        defaultValue={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+        tabClassName="w-full"
+      />
       
       <TabsContent value="booking" className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-4">
           <BarberProfileCard />
@@ -606,3 +616,5 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
+
+    
