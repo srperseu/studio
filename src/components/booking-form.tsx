@@ -150,24 +150,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchAppointments();
   }, [selectedDate, barber.id]);
 
-  const disabledDays = useMemo(() => {
-    const inactiveDaysOfWeek = Object.entries(barber.availability || {})
-        .filter(([, value]) => !value.active)
-        .map(([key]) => dayOfWeekMap.indexOf(key));
-
-    const blockedDateRanges = (barber.blockouts || [])
-        .filter(event => event.isAllDay)
-        .map(event => ({
-            from: startOfDay(parseISO(event.startDate)),
-            to: endOfDay(parseISO(event.endDate))
-        }));
-
-    return [
-        (date: Date) => date < startOfDay(new Date()),
-        { dayOfWeek: inactiveDaysOfWeek },
-        ...blockedDateRanges,
-    ];
-  }, [barber.availability, barber.blockouts]);
 
   // Generate time slots when date, service, or appointments change
   useEffect(() => {
@@ -209,7 +191,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
       // Create a list of occupied blocks including appointments and time-specific blockouts
       const appointmentBlocks = existingAppointments.map(app => {
-          const bookedService = barber.services.find(s => s.name === app.serviceName);
+          const bookedService = barber.services.find(s => s.id === app.serviceId || s.name === app.serviceName);
           const duration = bookedService?.duration || DEFAULT_APPOINTMENT_DURATION;
           const start = timeToMinutes(app.time);
           const end = start + duration;
@@ -226,7 +208,6 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       const occupiedBlocks = [...appointmentBlocks, ...eventBlocks].sort((a, b) => a.start - b.start);
       
       const slots: string[] = [];
-      const searchIncrement = 15; // check every 15 min
       
       let currentTime = workStartMinutes;
       while (currentTime + serviceDuration <= workEndMinutes) {
@@ -245,10 +226,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
           if (isAvailable) {
               slots.push(minutesToTime(currentTime));
-              currentTime += searchIncrement;
-          } else {
-              // If we jumped, we need to continue the outer loop to re-check from the new currentTime
-              continue;
+              currentTime += serviceDuration;
           }
       }
       
@@ -285,6 +263,25 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     fetchTravelInfo();
   }, [clientCoords, barber.coordinates]);
 
+    const disabledDays = useMemo(() => {
+        const inactiveDaysOfWeek = Object.entries(barber.availability || {})
+            .filter(([, value]) => !value.active)
+            .map(([key]) => dayOfWeekMap.indexOf(key));
+
+        const blockedDateRanges = (barber.blockouts || [])
+            .filter(event => event.isAllDay)
+            .map(event => ({
+                from: startOfDay(parseISO(event.startDate)),
+                to: endOfDay(parseISO(event.endDate))
+            }));
+
+        return [
+            (date: Date) => date < startOfDay(new Date()),
+            { dayOfWeek: inactiveDaysOfWeek },
+            ...blockedDateRanges,
+        ];
+    }, [barber.availability, barber.blockouts]);
+
   const onSubmit = async (data: BookingFormValues) => {
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Você precisa estar logado para agendar.', variant: 'destructive' });
@@ -313,12 +310,13 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         const clientData = clientSnap.data() as Client;
 
         const newAppointment: Appointment = {
-            id: 'temp-' + Date.now(),
+            id: result.appointmentId || 'temp-' + Date.now(),
             clientName: clientName,
             clientUid: user.uid,
             clientCoordinates: clientData.coordinates || null,
             clientFullAddress: clientData.address?.fullAddress || '',
             serviceName: selectedService.name,
+            serviceId: selectedService.id,
             servicePrice: finalPrice,
             type: data.bookingType,
             date: format(data.selectedDate, 'yyyy-MM-dd'),
