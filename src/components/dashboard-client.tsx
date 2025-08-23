@@ -36,7 +36,6 @@ export function DashboardClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', body: '' });
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-
   const [scheduledFilter, setScheduledFilter] = useState<'all' | 'inShop' | 'atHome'>('all');
 
   const fetchData = useCallback(async () => {
@@ -357,7 +356,7 @@ export function DashboardClient() {
             <CardContent>
               {scheduledAppointments.length > 0 ? (
                 <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                  <TabsList>
+                  <TabsList className="grid w-full grid-cols-3">
                       <AnimatedTabsTrigger value="all">Todos</AnimatedTabsTrigger>
                       <AnimatedTabsTrigger value="inShop">Na Barbearia</AnimatedTabsTrigger>
                       <AnimatedTabsTrigger value="atHome">Em Domicílio</AnimatedTabsTrigger>
@@ -442,3 +441,7 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
+
+    
