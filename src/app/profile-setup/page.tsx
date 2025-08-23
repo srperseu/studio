@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { generateBioAction, updateBarberSection } from '@/app/actions';
+import { generateBioAction } from '@/app/actions';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -200,42 +200,44 @@ export default function ProfileSetupPage() {
     setAddress(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
   
-  const handleSectionSave = async (section: string) => {
+  const handleSectionSave = async (section: keyof Barber | string) => {
     if (!user) return;
     setIsLoading(true);
     let dataToSave: Partial<Barber> = {};
-    let success = false;
 
     try {
-        if (section === 'info') {
-            dataToSave = basicInfo;
-        } else if (section === 'address') {
-            const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
-            const coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
-            if (!coordinates) {
-                 toast({ title: 'Aviso', description: 'Não foi possível encontrar as coordenadas. Verifique o endereço.', variant: 'destructive' });
-            }
-            dataToSave = { address: { ...address, fullAddress: completeAddress }, coordinates };
-        } else if (section === 'photos') {
-            dataToSave = { barbershopPhotos };
-        } else if (section === 'availability') {
-            dataToSave = { availability };
-        } else if (section === 'services') {
-            dataToSave = { services };
-        } else if (section === 'blockouts') {
-            dataToSave = { blockouts };
+        switch (section) {
+            case 'info':
+                dataToSave = basicInfo;
+                break;
+            case 'address':
+                const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
+                const coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
+                if (!coordinates) {
+                    toast({ title: 'Aviso', description: 'Não foi possível encontrar as coordenadas. Verifique o endereço.', variant: 'destructive' });
+                }
+                dataToSave = { address: { ...address, fullAddress: completeAddress }, coordinates };
+                break;
+            case 'photos':
+                dataToSave = { barbershopPhotos };
+                break;
+            case 'availability':
+                dataToSave = { availability };
+                break;
+            case 'services':
+                dataToSave = { services };
+                break;
+            case 'blockouts':
+                dataToSave = { blockouts };
+                break;
         }
 
-        const result = await updateBarberSection(user.uid, dataToSave);
+        const barberRef = doc(db, 'barbers', user.uid);
+        await updateDoc(barberRef, dataToSave);
 
-        if (result.success) {
-            toast({ title: 'Sucesso!', description: 'Seção salva com sucesso!' });
-            // Update savedProfile state to match new saved data
-            setSavedProfile(prev => ({...prev, ...dataToSave}));
-            success = true;
-        } else {
-            toast({ title: 'Erro', description: result.message, variant: 'destructive' });
-        }
+        toast({ title: 'Sucesso!', description: 'Seção salva com sucesso!' });
+        // Update savedProfile state to match new saved data
+        setSavedProfile(prev => ({...prev, ...dataToSave}));
     } catch(error: any) {
         toast({ title: 'Erro', description: `Erro ao salvar: ${error.message}`, variant: 'destructive' });
     } finally {
@@ -436,37 +438,30 @@ export default function ProfileSetupPage() {
     
     setIsLoading(true);
     try {
-      const finalData: Partial<Barber> = {};
+        const finalData: Partial<Barber> = {};
 
-      if (dirtySections.info) {
-        Object.assign(finalData, basicInfo);
-      }
-      if (dirtySections.address) {
-        const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
-        const coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
-        Object.assign(finalData, { address: { ...address, fullAddress: completeAddress }, coordinates });
-      }
-      if (dirtySections.photos) {
-        finalData.barbershopPhotos = barbershopPhotos;
-      }
-      if (dirtySections.availability) {
-        finalData.availability = availability;
-      }
-      if (dirtySections.services) {
-        finalData.services = services;
-      }
-      if (dirtySections.blockouts) {
-        finalData.blockouts = blockouts;
-      }
+        // Merge all dirty sections into one object
+        if (dirtySections.info) Object.assign(finalData, basicInfo);
+        if (dirtySections.address) {
+            const completeAddress = `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city} - ${address.state}`;
+            const coordinates = await getCoordinatesForAddress(completeAddress, mapsApiKey);
+            Object.assign(finalData, { address: { ...address, fullAddress: completeAddress }, coordinates });
+        }
+        if (dirtySections.photos) finalData.barbershopPhotos = barbershopPhotos;
+        if (dirtySections.availability) finalData.availability = availability;
+        if (dirtySections.services) finalData.services = services;
+        if (dirtySections.blockouts) finalData.blockouts = blockouts;
 
-      // Add the profile complete flag
-      finalData.profileComplete = true;
+        // Add the profile complete flag
+        finalData.profileComplete = true;
 
-      const barberRef = doc(db, 'barbers', user.uid);
-      await updateDoc(barberRef, finalData);
+        if (Object.keys(finalData).length > 1) { // more than just profileComplete flag
+            const barberRef = doc(db, 'barbers', user.uid);
+            await updateDoc(barberRef, finalData);
+        }
       
-      toast({ title: 'Sucesso!', description: 'Perfil salvo e concluído!' });
-      router.push('/dashboard');
+        toast({ title: 'Sucesso!', description: 'Perfil salvo e concluído!' });
+        router.push('/dashboard');
 
     } catch(error: any) {
         toast({ title: 'Erro', description: `Erro ao finalizar perfil: ${error.message}`, variant: 'destructive' });
@@ -830,24 +825,28 @@ export default function ProfileSetupPage() {
                     isSaving={isLoading}
                 >
                     <div className="space-y-4">
-                        {Array.isArray(services) && services.map((service) => (
-                            <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                <div>
-                                    <p className="font-semibold">{service.name} ({service.duration || 60} min)</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
-                                    </p>
+                        {Array.isArray(services) && services.length > 0 ? (
+                            services.map((service) => (
+                                <div key={service.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                    <div>
+                                        <p className="font-semibold">{service.name} ({service.duration || 60} min)</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Preço: R$ {service.price.toFixed(2)} | Preço Domicílio: R$ {(service.atHomePrice || 0).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleEditService(service)}>
+                                            <Icons.Pencil className="h-4 w-4 text-primary" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
+                                            <Icons.X className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleEditService(service)}>
-                                        <Icons.Pencil className="h-4 w-4 text-primary" />
-                                    </Button>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(service.id)}>
-                                        <Icons.X className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço cadastrado ainda.</p>
+                        )}
                     </div>
                     
                     <div className="mt-6 pt-6 border-t border-border">
