@@ -16,8 +16,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cancelAppointmentAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { ReviewForm } from './review-form';
+import { AnimatedTabs } from './ui/animated-tabs';
 
 
 interface AppointmentWithBarber extends Appointment {
@@ -113,6 +114,12 @@ export function ClientDashboard() {
 
     return { scheduledAppointments: scheduled, pendingReviewAppointments: pendingReview };
   }, [appointments]);
+  
+  const filterTabs = [
+    { value: "all", label: "Todos" },
+    { value: "inShop", label: "Na Barbearia" },
+    { value: "atHome", label: "Em Domicílio" },
+  ];
 
   const filteredScheduled = useMemo(() => {
     if (scheduledFilter === 'all') return scheduledAppointments;
@@ -321,6 +328,17 @@ export function ClientDashboard() {
         <Card className="bg-card border-border shadow-lg">
           <CardHeader>
               <CardTitle>Próximos Agendamentos</CardTitle>
+               <div className="pt-2">
+                <AnimatedTabs
+                  tabs={filterTabs}
+                  defaultValue="all"
+                  onValueChange={(value) => {
+                    setScheduledFilter(value as any);
+                  }}
+                  className="w-full"
+                  tabClassName="w-full"
+                />
+              </div>
           </CardHeader>
           <CardContent>
             {scheduledAppointments.length === 0 ? (
@@ -329,28 +347,15 @@ export function ClientDashboard() {
                     <p className="mt-4 text-muted-foreground">Você não tem próximos agendamentos.</p>
                 </div>
             ) : (
-                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                        <TabsTrigger value="all">Todos</TabsTrigger>
-                        <TabsTrigger value="inShop">Na Barbearia</TabsTrigger>
-                        <TabsTrigger value="atHome">Em Domicílio</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="all">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                    {filteredScheduled.length > 0 ? (
+                        filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} />)
+                    ) : (
+                        <div className="col-span-full text-center py-8">
+                            <p className="text-muted-foreground">Nenhum agendamento encontrado para este filtro.</p>
                         </div>
-                    </TabsContent>
-                    <TabsContent value="inShop">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredScheduled.filter(a => a.type === 'inShop').map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="atHome">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredScheduled.filter(a => a.type === 'atHome').map(app => <AppointmentCard key={app.id} app={app} />)}
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                    )}
+                </div>
             )}
           </CardContent>
         </Card>

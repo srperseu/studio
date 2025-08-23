@@ -56,7 +56,7 @@ export function AnimatedTabs({
         {/* O elemento que faz a mágica da animação */}
         <AnimatePresence>
             <motion.div
-              layoutId="active-tab-indicator-barberflow"
+              layoutId="active-tab-indicator-barberflow-client"
               className="absolute inset-0 z-0 h-full p-1"
               style={{
                 width: `calc(100% / ${tabs.length})`,
