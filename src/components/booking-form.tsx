@@ -164,7 +164,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       const isDayBlocked = barber.blockouts?.some(event => {
           const startDate = parseISO(event.startDate);
           const endDate = parseISO(event.endDate);
-          return event.isAllDay && selectedDate >= startDate && selectedDate <= endDate;
+          // Set hours to 0 to compare dates correctly
+          const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+          return event.isAllDay && selectedDateOnly >= startDate && selectedDateOnly <= endDate;
       });
 
       if (isDayBlocked) {
@@ -269,7 +271,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         .filter(([, value]) => !value.active)
         .map(([key]) => dayOfWeekMap.indexOf(key));
 
-    const blockedDates: (Date | { from: Date; to: Date })[] = (barber.blockouts || [])
+    const blockedDateRanges = (barber.blockouts || [])
         .filter(event => event.isAllDay)
         .map(event => ({
             from: parseISO(event.startDate),
@@ -278,8 +280,8 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
     return [
         (date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0)),
-        (date: Date) => inactiveDaysOfWeek.includes(date.getDay()),
-        ...blockedDates
+        { daysOfWeek: inactiveDaysOfWeek },
+        ...blockedDateRanges,
     ];
 }, [barber.availability, barber.blockouts]);
 
@@ -411,6 +413,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 w-full">
+      <LayoutGroup>
         <TabsList className="grid w-full grid-cols-2 relative bg-muted p-1 h-10">
             {TABS.map((tab) => (
             <TabsTrigger
@@ -433,6 +436,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
             </TabsTrigger>
             ))}
         </TabsList>
+      </LayoutGroup>
       
       <TabsContent value="booking" className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mt-4">
           <BarberProfileCard />
@@ -674,3 +678,5 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
     </Tabs>
   );
 }
+
+    
