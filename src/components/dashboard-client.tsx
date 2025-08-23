@@ -21,7 +21,7 @@ import { db } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Tabs, TabsContent, TabsList, AnimatedTabsTrigger } from "@/components/ui/tabs";
+import { AnimatedTabs } from "@/components/ui/animated-tabs";
 
 
 export function DashboardClient() {
@@ -88,6 +88,12 @@ export function DashboardClient() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  
+  const filterTabs = [
+    { value: "all", label: "Todos" },
+    { value: "inShop", label: "Na Barbearia" },
+    { value: "atHome", label: "Em Domicílio" },
+  ];
 
   const { scheduledAppointments, pendingAppointments } = useMemo(() => {
     const scheduledList: Appointment[] = [];
@@ -352,15 +358,18 @@ export function DashboardClient() {
           <Card className="bg-card border-border shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Icons.Bell /> Próximos Agendamentos</CardTitle>
+                 <div className="pt-2">
+                    <AnimatedTabs
+                      tabs={filterTabs}
+                      defaultValue="all"
+                      onValueChange={(value) => {
+                        setScheduledFilter(value as any);
+                      }}
+                    />
+                  </div>
             </CardHeader>
             <CardContent>
               {scheduledAppointments.length > 0 ? (
-                <Tabs value={scheduledFilter} onValueChange={(value) => setScheduledFilter(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                      <AnimatedTabsTrigger value="all">Todos</AnimatedTabsTrigger>
-                      <AnimatedTabsTrigger value="inShop">Na Barbearia</AnimatedTabsTrigger>
-                      <AnimatedTabsTrigger value="atHome">Em Domicílio</AnimatedTabsTrigger>
-                  </TabsList>
                   <div className="space-y-4 mt-4">
                       {filteredScheduled.length > 0 ? (
                           filteredScheduled.map(app => <AppointmentCard key={app.id} app={app} context="scheduled"/>)
@@ -368,7 +377,6 @@ export function DashboardClient() {
                           <p className="text-muted-foreground text-center py-8 col-span-full">Nenhum agendamento encontrado para este filtro.</p>
                       )}
                   </div>
-                </Tabs>
               ) : (
                 <p className="text-muted-foreground text-center py-8">Nenhum próximo agendamento encontrado.</p>
               )}
