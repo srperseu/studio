@@ -315,23 +315,23 @@ export function DashboardClient() {
 
            {lowRatedReviews.length > 0 && (
             <Card className="bg-card border-border shadow-lg border-l-4 border-destructive">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
+                <CardHeader className="flex flex-row items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleAcknowledgeReviews} className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                    <Icons.Check className="mr-2 h-4 w-4" />
+                    Marcar como lidas
+                  </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4 text-sm text-muted-foreground">
                        <p>Você recebeu {lowRatedReviews.length} avaliações com 3 estrelas ou menos. É uma boa oportunidade para entender o feedback e entrar em contato com os clientes.</p>
-                       <div className="flex flex-wrap gap-2">
-                          <Button variant="link" asChild className="p-0 text-primary">
-                              <Link href="/dashboard/reviews">
-                                  Ver todas as avaliações &rarr;
-                              </Link>
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={handleAcknowledgeReviews}>
-                            <Icons.Check className="mr-2 h-4 w-4" />
-                            Marcar como lidas
-                          </Button>
-                       </div>
+                       <Button variant="link" asChild className="p-0 text-primary">
+                          <Link href="/dashboard/reviews">
+                              Ver todas as avaliações &rarr;
+                          </Link>
+                      </Button>
                     </div>
                 </CardContent>
             </Card>
