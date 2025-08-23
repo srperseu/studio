@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -49,6 +50,7 @@ interface BookingFormProps {
 
 // Helper to convert time string "HH:MM" to minutes from midnight
 const timeToMinutes = (timeStr: string): number => {
+    if (!timeStr || !timeStr.includes(':')) return 0;
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
 };
@@ -122,7 +124,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
       setIsReviewsLoading(true);
       const q = query(collection(db, `barbers/${barber.id}/reviews`), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
-      const reviewsData = querySnapshot.docs.map(doc => doc.data() as Review);
+      const reviewsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
       setReviews(reviewsData);
       setIsReviewsLoading(false);
     }
@@ -164,7 +166,7 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
     return [
         (date: Date) => date < startOfDay(new Date()),
-        { daysOfWeek: inactiveDaysOfWeek },
+        { dayOfWeek: inactiveDaysOfWeek },
         ...blockedDateRanges,
     ];
   }, [barber.availability, barber.blockouts]);
@@ -233,13 +235,13 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
         let currentTime = workStartMinutes;
 
         while (currentTime + serviceDuration <= workEndMinutes) {
-            const slotEnd = currentTime + serviceDuration;
+            const potentialEndTime = currentTime + serviceDuration;
             let isAvailable = true;
 
             for (const block of occupiedBlocks) {
                 // Check for any overlap:
                 // A slot is unavailable if it starts before a block ends AND it ends after that block starts.
-                if (currentTime < block.end && slotEnd > block.start) {
+                if (currentTime < block.end && potentialEndTime > block.start) {
                     isAvailable = false;
                     // Move current time to the end of the conflicting block to continue searching
                     currentTime = block.end;
@@ -249,8 +251,9 @@ export function BookingForm({ barber, clientCoords }: BookingFormProps) {
 
             if (isAvailable) {
                 slots.push(minutesToTime(currentTime));
-                currentTime += searchIncrement;
             }
+             // Always increment by the search step, the logic inside handles the jumps.
+            currentTime += searchIncrement;
         }
         
         setAvailableTimeSlots(slots);
