@@ -258,7 +258,7 @@ export function DashboardClient() {
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" disabled={isUpdating === app.id} className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                             <Button size="sm" variant="ghost" disabled={isUpdating === app.id} className="w-full sm:w-auto text-destructive hover:bg-destructive/10 hover:text-destructive">
                                 <Icons.X className="mr-2 h-4 w-4" /> Cancelar
                             </Button>
                         </AlertDialogTrigger>
@@ -319,7 +319,7 @@ export function DashboardClient() {
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-destructive"><Icons.AlertTriangle /> Avaliações que Precisam de Atenção</CardTitle>
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleAcknowledgeReviews} className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                  <Button variant="link" size="sm" onClick={handleAcknowledgeReviews} className="text-muted-foreground hover:text-primary p-0 h-auto">
                     <Icons.Check className="mr-2 h-4 w-4" />
                     Marcar como lidas
                   </Button>
@@ -438,3 +438,5 @@ function DashboardSkeleton() {
         </>
     )
 }
+
+    
